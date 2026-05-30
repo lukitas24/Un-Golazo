@@ -14,4 +14,11 @@ interface PartidoRepository {
         partidoId: Int,
         usuario: String
     ): Boolean
+
+    fun cancelarInscripcion(
+        partidoId: Int,
+        usuario: String
+    ): Boolean
+
+
 }

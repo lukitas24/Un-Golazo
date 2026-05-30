@@ -1,15 +1,26 @@
 package com.example.futbolnomade.presentation.ui.partidos
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.futbolnomade.domain.model.Partido
 import com.example.futbolnomade.presentation.state.PartidoUiState
+import com.example.futbolnomade.presentation.ui.components.AppBottomBar
+
+private val FondoOscuro = Color(0xFF202020)
+private val Verde = Color(0xFF82A820)
+private val BlancoCard = Color(0xFFF8F8F8)
 
 @Composable
 fun PartidosScreen(
@@ -18,45 +29,155 @@ fun PartidosScreen(
     onVerDetalle: (Int) -> Unit,
     onVolver: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-    ) {
-        Text(
-            text = "Partidos",
-            style = MaterialTheme.typography.headlineMedium
-        )
+    var busqueda by remember { mutableStateOf("") }
+    var filtroSeleccionado by remember { mutableStateOf("Todos") }
+    var ordenSeleccionado by remember { mutableStateOf("Más próximos") }
 
-        Spacer(modifier = Modifier.height(16.dp))
+    val filtros = listOf(
+        "Todos",
+        "Con cupo",
+        "Llenos",
+        "Fácil",
+        "Avanzado"
+    )
 
-        Button(
-            onClick = onCrearPartido,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Crear partido")
+    val ordenes = listOf(
+        "Más próximos",
+        "Más cupos",
+        "Nombre A-Z"
+    )
+
+    val partidosFiltrados = uiState.partidos
+        .filter { partido ->
+            busqueda.isBlank() ||
+                    partido.titulo.contains(busqueda, ignoreCase = true) ||
+                    partido.ubicacion.contains(busqueda, ignoreCase = true) ||
+                    partido.creador.contains(busqueda, ignoreCase = true)
         }
+        .filter { partido ->
+            when (filtroSeleccionado) {
+                "Con cupo" -> partido.participantesActuales < partido.participantesMaximos
+                "Llenos" -> partido.participantesActuales >= partido.participantesMaximos
+                "Fácil" -> partido.dificultad.equals("Fácil", ignoreCase = true)
+                "Avanzado" -> partido.dificultad.equals("Avanzado", ignoreCase = true)
+                else -> true
+            }
+        }
+        .let { lista ->
+            when (ordenSeleccionado) {
+                "Más cupos" -> lista.sortedByDescending {
+                    it.participantesMaximos - it.participantesActuales
+                }
 
-        Spacer(modifier = Modifier.height(16.dp))
+                "Nombre A-Z" -> lista.sortedBy {
+                    it.titulo
+                }
 
-        LazyColumn {
-            items(uiState.partidos) { partido ->
-                PartidoCard(
-                    partido = partido,
-                    onClick = {
-                        onVerDetalle(partido.id)
-                    }
-                )
+                else -> lista
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = onVolver,
-            modifier = Modifier.fillMaxWidth()
+    Scaffold(
+        containerColor = FondoOscuro,
+        bottomBar = {
+            AppBottomBar()
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onCrearPartido,
+                containerColor = Verde,
+                contentColor = Color.Black,
+                shape = CircleShape
+            ) {
+                Text(
+                    text = "+",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 24.dp, vertical = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Volver")
+            Text(
+                text = "Partidos",
+                color = Verde,
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            OutlinedTextField(
+                value = busqueda,
+                onValueChange = { busqueda = it },
+                placeholder = { Text("Buscar partido") },
+                trailingIcon = {
+                    Text(
+                        text = "⌕",
+                        color = Verde,
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(6.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    focusedBorderColor = Color.White,
+                    unfocusedBorderColor = Color.White,
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+                    focusedPlaceholderColor = Color.Gray,
+                    unfocusedPlaceholderColor = Color.Gray
+                )
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            FiltroDropdown(
+                titulo = "Filtrar por",
+                opciones = filtros,
+                seleccion = filtroSeleccionado,
+                onSeleccionar = { filtroSeleccionado = it }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            FiltroDropdown(
+                titulo = "Ordenar por",
+                opciones = ordenes,
+                seleccion = ordenSeleccionado,
+                onSeleccionar = { ordenSeleccionado = it }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if (partidosFiltrados.isEmpty()) {
+                Text(
+                    text = "No se encontraron partidos",
+                    color = Color.White
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(partidosFiltrados) { partido ->
+                        PartidoCard(
+                            partido = partido,
+                            onClick = {
+                                onVerDetalle(partido.id)
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -69,22 +190,169 @@ fun PartidoCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 12.dp)
-            .clickable { onClick() }
+            .padding(bottom = 18.dp)
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = BlancoCard
+        ),
+        border = BorderStroke(4.dp, Verde),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = partido.titulo,
-                style = MaterialTheme.typography.titleLarge
+                text = "⚽",
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier.padding(end = 12.dp)
             )
 
-            Text("${partido.horario} hs - ${partido.fecha}")
-            Text(partido.dificultad)
-            Text(partido.ubicacion)
-            Text("${partido.participantesActuales}/${partido.participantesMaximos} participantes")
-            Text("Creado por: ${partido.creador} ⭐ ${partido.calificacionCreador}")
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = partido.titulo,
+                    color = Color.Black,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Row {
+                    Text(
+                        text = "${partido.horario} hs",
+                        color = Color.Black,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Text(
+                        text = partido.fecha,
+                        color = Color.Black,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                Text(
+                    text = partido.dificultad,
+                    color = Color.Black,
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "📍 ${partido.ubicacion}",
+                    color = Color.Black,
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "👥 ${partido.participantesActuales}/${partido.participantesMaximos}",
+                    color = Color.Black,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = "Creado por: ${partido.creador} ⭐ ${partido.calificacionCreador}",
+                    color = Color.Black,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Surface(
+                color = Verde,
+                shape = CircleShape,
+                border = BorderStroke(2.dp, Color.Black),
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "+",
+                        color = Color.Black,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun FiltroDropdown(
+    titulo: String,
+    opciones: List<String>,
+    seleccion: String,
+    onSeleccionar: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = titulo,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.width(95.dp)
+        )
+
+        Box(
+            modifier = Modifier.weight(1f)
+        ) {
+            Surface(
+                color = Color.White,
+                shape = RoundedCornerShape(4.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        expanded = true
+                    }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = seleccion,
+                        color = Color.Black,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Text(
+                        text = "⌄",
+                        color = Verde,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = {
+                    expanded = false
+                }
+            ) {
+                opciones.forEach { opcion ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(opcion)
+                        },
+                        onClick = {
+                            onSeleccionar(opcion)
+                            expanded = false
+                        }
+                    )
+                }
+            }
         }
     }
 }
