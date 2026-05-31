@@ -11,4 +11,13 @@ sealed class Screen(val route: String) {
 
     object Elementos : Screen("elementos")
     object Acerca : Screen("acerca")
+
+    object Partidos : Screen("partidos")
+    object CrearPartido : Screen("crear_partido")
+
+    object DetallePartido : Screen("detalle_partido/{partidoId}") {
+        fun createRoute(partidoId: Int): String {
+            return "detalle_partido/$partidoId"
+        }
+    }
 }

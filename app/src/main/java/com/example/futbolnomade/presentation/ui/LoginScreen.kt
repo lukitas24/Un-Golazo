@@ -1,108 +1,228 @@
 package com.example.futbolnomade.presentation.ui
 
+import android.util.Patterns
 import android.widget.Toast
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (String) -> Unit
+    onLoginSuccess: (String) -> Unit,
+    onSignUpClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
-    var nombreUsuario by remember { mutableStateOf("") }
-    var contra by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+
+    val darkBackground = Color(0xFF171516)
+    val fieldGray = Color(0xFF7A7A7A)
+    val neonGreen = Color(0xFF00FF7F)
+
+    fun validarLogin(): Boolean {
+        val cleanEmail = email.trim()
+        val cleanPassword = password.trim()
+
+        emailError = null
+        passwordError = null
+
+        if (cleanEmail.isEmpty()) {
+            emailError = "Ingresá tu email"
+            return false
+        }
+
+        if (!Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()) {
+            emailError = "Email inválido"
+            return false
+        }
+
+        if (cleanPassword.isEmpty()) {
+            passwordError = "Ingresá tu contraseña"
+            return false
+        }
+
+        if (cleanPassword.length < 6) {
+            passwordError = "La contraseña debe tener al menos 6 caracteres"
+            return false
+        }
+
+        return true
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .background(darkBackground)
+            .padding(horizontal = 36.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(80.dp))
+        Spacer(modifier = Modifier.height(72.dp))
 
         Text(
-            text = "Fútbol Nómade",
-            style = MaterialTheme.typography.headlineMedium
+            text = "Ingresar",
+            color = Color.White,
+            fontSize = 30.sp,
+            fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(72.dp))
 
-        OutlinedTextField(
-            value = nombreUsuario,
-            onValueChange = { nombreUsuario = it },
-            label = { Text("Nombre de usuario") },
-            modifier = Modifier.fillMaxWidth()
+        Text(
+            text = "EMAIL",
+            color = neonGreen,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.Start)
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedTextField(
+            value = email,
+            onValueChange = {
+                email = it
+                emailError = null
+            },
+            placeholder = { Text("hello@reallygreatsite.com", color = Color.White.copy(alpha = 0.75f)) },
+            isError = emailError != null,
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = fieldGray,
+                unfocusedContainerColor = fieldGray,
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                errorBorderColor = Color.Red,
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                cursorColor = neonGreen
+            )
+        )
+
+        emailError?.let {
+            Text(
+                text = it,
+                color = Color.Red,
+                fontSize = 12.sp,
+                modifier = Modifier.align(Alignment.Start)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Text(
+            text = "PASSWORD",
+            color = neonGreen,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.Start)
+        )
 
         OutlinedTextField(
-            value = contra,
-            onValueChange = { contra = it },
-            label = { Text("Contraseña") },
+            value = password,
+            onValueChange = {
+                password = it
+                passwordError = null
+            },
+            placeholder = { Text("••••••", color = Color.White.copy(alpha = 0.75f)) },
             visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
+            isError = passwordError != null,
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = fieldGray,
+                unfocusedContainerColor = fieldGray,
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                errorBorderColor = Color.Red,
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                cursorColor = neonGreen
+            )
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        passwordError?.let {
+            Text(
+                text = it,
+                color = Color.Red,
+                fontSize = 12.sp,
+                modifier = Modifier.align(Alignment.Start)
+            )
+        }
 
-        Button(
+        Spacer(modifier = Modifier.height(36.dp))
+
+        OutlinedButton(
             onClick = {
-                val usuario = nombreUsuario.trim()
-                val password = contra.trim()
+                if (!validarLogin()) return@OutlinedButton
 
-                if (usuario.isEmpty()) {
-                    Toast.makeText(
-                        context,
-                        "Escribí un nombre de usuario",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    return@Button
-                }
+                val cleanEmail = email.trim()
+                val cleanPassword = password.trim()
 
-                if (password.isEmpty()) {
-                    Toast.makeText(
-                        context,
-                        "Escribí una contraseña",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    return@Button
-                }
-
-                if (usuario == "admin" && password == "123456") {
-                    onLoginSuccess(usuario)
+                if (cleanEmail == "admin@gmail.com" && cleanPassword == "123456") {
+                    onLoginSuccess(cleanEmail)
                 } else {
                     Toast.makeText(
                         context,
-                        "Usuario o contraseña incorrectos",
+                        "Email o contraseña incorrectos",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = Color.White
+            ),
+            border = ButtonDefaults.outlinedButtonBorder.copy(
+                width = 2.dp,
+                brush = androidx.compose.ui.graphics.SolidColor(neonGreen)
+            )
         ) {
-            Text("Siguiente")
+            Text("Log in")
+        }
+
+        Spacer(modifier = Modifier.height(18.dp))
+
+        Text(
+            text = "No tenes cuenta? Crea una aquí",
+            color = Color.White,
+            fontSize = 11.sp
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        OutlinedButton(
+            onClick = onSignUpClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = Color.White
+            ),
+            border = ButtonDefaults.outlinedButtonBorder.copy(
+                width = 2.dp,
+                brush = androidx.compose.ui.graphics.SolidColor(neonGreen)
+            )
+        ) {
+            Text("Sign up")
         }
     }
 }
