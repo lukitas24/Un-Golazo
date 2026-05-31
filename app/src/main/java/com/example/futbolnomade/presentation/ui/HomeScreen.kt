@@ -50,7 +50,7 @@ fun HomeScreen(
             onClick = onIrACanchas,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Ver canchas")
+            Text("Ver Canchas")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -70,6 +70,5 @@ fun HomeScreen(
         ) {
             Text("Acerca de")
         }
-
     }
 }
