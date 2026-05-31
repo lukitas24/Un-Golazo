@@ -52,7 +52,10 @@ fun AppNavigation() {
                 },
                 onIrAPartidos = {
                     navController.navigate(Screen.Partidos.route)
-                }
+                },
+                onIrACanchas = {
+                    navController.navigate(Screen.Canchas.route)
+                },
             )
         }
 

@@ -19,7 +19,8 @@ fun HomeScreen(
     nombreUsuario: String,
     onIrAElementos: () -> Unit,
     onIrAAcerca: () -> Unit,
-    onIrAPartidos: () -> Unit
+    onIrAPartidos: () -> Unit,
+    onIrACanchas: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -46,6 +47,15 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
+            onClick = onIrACanchas,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Ver canchas")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
             onClick = onIrAElementos,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -60,5 +70,6 @@ fun HomeScreen(
         ) {
             Text("Acerca de")
         }
+
     }
 }
