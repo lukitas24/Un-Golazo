@@ -35,6 +35,7 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.foundation)
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
@@ -45,6 +46,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.navigation:navigation-compose:2.8.5")
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 
