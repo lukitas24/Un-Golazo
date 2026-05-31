@@ -12,9 +12,10 @@ fun DetallePartidoScreen(
     partido: Partido?,
     usuarioActual: String,
     onAnotarse: (Int, String) -> Boolean,
+    onCancelarInscripcion: (Int, String) -> Boolean,
     onVolver: () -> Unit
-
-) {
+)
+{
     if (partido == null) {
         Column(
             modifier = Modifier
@@ -65,14 +66,18 @@ fun DetallePartidoScreen(
 
         Button(
             onClick = {
-                onAnotarse(partido.id, usuarioActual)
+                if (yaEstaAnotado) {
+                    onCancelarInscripcion(partido.id, usuarioActual)
+                } else {
+                    onAnotarse(partido.id, usuarioActual)
+                }
             },
-            enabled = !yaEstaAnotado && !partidoLleno,
+            enabled = !partidoLleno || yaEstaAnotado,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
                 when {
-                    yaEstaAnotado -> "Ya estás anotado"
+                    yaEstaAnotado -> "Cancelar inscripción"
                     partidoLleno -> "Partido lleno"
                     else -> "Anotarme"
                 }
@@ -86,6 +91,23 @@ fun DetallePartidoScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Volver")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Participantes",
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (partido.usuariosAnotados.isEmpty()) {
+            Text("Todavía no hay participantes anotados")
+        } else {
+            partido.usuariosAnotados.forEach { usuario ->
+                Text("• $usuario")
+            }
         }
     }
 }

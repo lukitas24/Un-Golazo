@@ -1,11 +1,17 @@
 package com.example.futbolnomade.presentation.ui.partidos
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CrearPartidoScreen(
     onCrearPartido: (
@@ -26,10 +32,15 @@ fun CrearPartidoScreen(
     var dificultad by remember { mutableStateOf("Ninguna") }
     var participantes by remember { mutableStateOf("10") }
     var descripcion by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    var mostrarDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
         Text(
@@ -60,10 +71,19 @@ fun CrearPartidoScreen(
 
         OutlinedTextField(
             value = fecha,
-            onValueChange = { fecha = it },
+            onValueChange = {},
             label = { Text("Fecha") },
-            placeholder = { Text("DD/MM/AAAA") },
-            modifier = Modifier.fillMaxWidth()
+            readOnly = true,
+            modifier = Modifier.fillMaxWidth(),
+            trailingIcon = {
+                TextButton(
+                    onClick = {
+                        mostrarDatePicker = true
+                    }
+                ) {
+                    Text("Elegir")
+                }
+            }
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -104,17 +124,42 @@ fun CrearPartidoScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        if (error != null) {
+            Text(
+                text = error!!,
+                color = MaterialTheme.colorScheme.error
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
         Button(
             onClick = {
-                onCrearPartido(
-                    titulo,
-                    horario,
-                    fecha,
-                    ubicacion,
-                    dificultad,
-                    participantes.toIntOrNull() ?: 10,
-                    descripcion
-                )
+                val participantesInt = participantes.toIntOrNull()
+
+                when {
+                    titulo.isBlank() -> error = "El título es obligatorio"
+                    horario.isBlank() -> error = "El horario es obligatorio"
+                    fecha.isBlank() -> error = "La fecha es obligatoria"
+                    ubicacion.isBlank() -> error = "La ubicación es obligatoria"
+                    dificultad.isBlank() -> error = "La dificultad es obligatoria"
+                    participantesInt == null || participantesInt <= 0 -> {
+                        error = "La cantidad de participantes debe ser mayor a 0"
+                    }
+                    else -> {
+                        error = null
+
+                        onCrearPartido(
+                            titulo.trim(),
+                            horario.trim(),
+                            fecha.trim(),
+                            ubicacion.trim(),
+                            dificultad.trim(),
+                            participantesInt,
+                            descripcion.trim()
+                        )
+                    }
+                }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -123,11 +168,52 @@ fun CrearPartidoScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Button(
+        OutlinedButton(
             onClick = onVolver,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Volver")
+        }
+    }
+
+    if (mostrarDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = {
+                mostrarDatePicker = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val millis = datePickerState.selectedDateMillis
+
+                        if (millis != null) {
+                            val formatter = SimpleDateFormat(
+                                "dd/MM/yyyy",
+                                Locale.getDefault()
+                            )
+
+                            fecha = formatter.format(Date(millis))
+                        }
+
+                        mostrarDatePicker = false
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        mostrarDatePicker = false
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        ) {
+            DatePicker(
+                state = datePickerState
+            )
         }
     }
 }

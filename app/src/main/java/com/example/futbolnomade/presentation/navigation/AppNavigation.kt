@@ -13,6 +13,7 @@ import com.example.futbolnomade.presentation.ui.partidos.PartidosScreen
 import com.example.futbolnomade.presentation.viewModel.PartidoViewModel
 import com.example.futbolnomade.presentation.ui.partidos.CrearPartidoScreen
 import com.example.futbolnomade.presentation.ui.partidos.DetallePartidoScreen
+
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -116,6 +117,9 @@ fun AppNavigation() {
                 usuarioActual = "admin",
                 onAnotarse = { partidoId, usuario ->
                     partidoViewModel.anotarseAPartido(partidoId, usuario)
+                },
+                onCancelarInscripcion = { partidoId, usuario ->
+                    partidoViewModel.cancelarInscripcion(partidoId, usuario)
                 },
                 onVolver = {
                     navController.popBackStack()
