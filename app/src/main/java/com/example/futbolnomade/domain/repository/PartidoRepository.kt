@@ -9,4 +9,9 @@ interface PartidoRepository {
     fun obtenerPartido(id: Int): Partido?
 
     fun crearPartido(partido: Partido)
+
+    fun anotarseAPartido(
+        partidoId: Int,
+        usuario: String
+    ): Boolean
 }

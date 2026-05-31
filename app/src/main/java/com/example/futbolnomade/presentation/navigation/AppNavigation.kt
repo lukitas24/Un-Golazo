@@ -8,10 +8,15 @@ import com.example.futbolnomade.presentation.ui.AcercaScreen
 import com.example.futbolnomade.presentation.ui.ElementosScreen
 import com.example.futbolnomade.presentation.ui.HomeScreen
 import com.example.futbolnomade.presentation.ui.LoginScreen
-
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.futbolnomade.presentation.ui.partidos.PartidosScreen
+import com.example.futbolnomade.presentation.viewModel.PartidoViewModel
+import com.example.futbolnomade.presentation.ui.partidos.CrearPartidoScreen
+import com.example.futbolnomade.presentation.ui.partidos.DetallePartidoScreen
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    val partidoViewModel: PartidoViewModel = viewModel()
 
     NavHost(
         navController = navController,
@@ -39,6 +44,9 @@ fun AppNavigation() {
                 },
                 onIrAAcerca = {
                     navController.navigate(Screen.Acerca.route)
+                },
+                onIrAPartidos = {
+                    navController.navigate(Screen.Partidos.route)
                 }
             )
         }
@@ -53,6 +61,62 @@ fun AppNavigation() {
 
         composable(Screen.Acerca.route) {
             AcercaScreen(
+                onVolver = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable(Screen.Partidos.route) {
+
+            PartidosScreen(
+                uiState = partidoViewModel.uiState,
+                onCrearPartido = {
+                    navController.navigate(Screen.CrearPartido.route)
+                },
+                onVerDetalle = { partidoId ->
+                    navController.navigate(Screen.DetallePartido.createRoute(partidoId))
+                },
+                onVolver = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable(Screen.CrearPartido.route) {
+
+            CrearPartidoScreen(
+                onCrearPartido = { titulo, horario, fecha, ubicacion, dificultad, participantes, descripcion ->
+                    partidoViewModel.crearPartido(
+                        titulo = titulo,
+                        horario = horario,
+                        fecha = fecha,
+                        ubicacion = ubicacion,
+                        dificultad = dificultad,
+                        participantes = participantes,
+                        descripcion = descripcion
+                    )
+
+                    navController.popBackStack()
+                },
+                onVolver = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable(Screen.DetallePartido.route) { backStackEntry ->
+            val partidoId = backStackEntry.arguments
+                ?.getString("partidoId")
+                ?.toIntOrNull()
+
+            val partido = partidoViewModel.uiState.partidos.find {
+                it.id == partidoId
+            }
+
+            DetallePartidoScreen(
+                partido = partido,
+                usuarioActual = "admin",
+                onAnotarse = { partidoId, usuario ->
+                    partidoViewModel.anotarseAPartido(partidoId, usuario)
+                },
                 onVolver = {
                     navController.popBackStack()
                 }

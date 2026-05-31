@@ -11,5 +11,6 @@ data class Partido(
     val participantesMaximos: Int,
     val creador: String,
     val calificacionCreador: Double,
-    val descripcion: String = ""
+    val descripcion: String = "",
+    val usuariosAnotados: List<String> = emptyList()
 )

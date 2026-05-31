@@ -33,7 +33,7 @@ class PartidoRepositoryImpl : PartidoRepository {
     )
 
     override fun obtenerPartidos(): List<Partido> {
-        return partidos
+        return partidos.toList()
     }
 
     override fun obtenerPartido(id: Int): Partido? {
@@ -42,5 +42,31 @@ class PartidoRepositoryImpl : PartidoRepository {
 
     override fun crearPartido(partido: Partido) {
         partidos.add(partido)
+    }
+
+    override fun anotarseAPartido(
+        partidoId: Int,
+        usuario: String
+    ): Boolean {
+        val index = partidos.indexOfFirst { it.id == partidoId }
+
+        if (index == -1) return false
+
+        val partido = partidos[index]
+
+        if (usuario in partido.usuariosAnotados) {
+            return false
+        }
+
+        if (partido.participantesActuales >= partido.participantesMaximos) {
+            return false
+        }
+
+        partidos[index] = partido.copy(
+            participantesActuales = partido.participantesActuales + 1,
+            usuariosAnotados = partido.usuariosAnotados + usuario
+        )
+
+        return true
     }
 }

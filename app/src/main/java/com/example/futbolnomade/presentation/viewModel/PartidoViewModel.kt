@@ -59,4 +59,17 @@ class PartidoViewModel : ViewModel() {
 
         cargarPartidos()
     }
+    fun anotarseAPartido(
+        partidoId: Int,
+        usuario: String
+    ): Boolean {
+        val resultado = repository.anotarseAPartido(
+            partidoId = partidoId,
+            usuario = usuario
+        )
+
+        cargarPartidos()
+
+        return resultado
+    }
 }
