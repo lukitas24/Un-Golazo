@@ -69,4 +69,26 @@ class PartidoRepositoryImpl : PartidoRepository {
 
         return true
     }
+
+    override fun cancelarInscripcion(
+        partidoId: Int,
+        usuario: String
+    ): Boolean {
+        val index = partidos.indexOfFirst { it.id == partidoId }
+
+        if (index == -1) return false
+
+        val partido = partidos[index]
+
+        if (usuario !in partido.usuariosAnotados) {
+            return false
+        }
+
+        partidos[index] = partido.copy(
+            participantesActuales = partido.participantesActuales - 1,
+            usuariosAnotados = partido.usuariosAnotados - usuario
+        )
+
+        return true
+    }
 }

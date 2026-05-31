@@ -13,10 +13,15 @@ import com.example.futbolnomade.presentation.ui.partidos.PartidosScreen
 import com.example.futbolnomade.presentation.viewModel.PartidoViewModel
 import com.example.futbolnomade.presentation.ui.partidos.CrearPartidoScreen
 import com.example.futbolnomade.presentation.ui.partidos.DetallePartidoScreen
+import com.example.futbolnomade.presentation.ui.canchas.CanchasScreen
+import com.example.futbolnomade.presentation.ui.canchas.CrearCanchaScreen
+import com.example.futbolnomade.presentation.viewModel.CanchaViewModel
+
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
     val partidoViewModel: PartidoViewModel = viewModel()
+    val canchaViewModel: CanchaViewModel = viewModel()
 
     NavHost(
         navController = navController,
@@ -66,8 +71,8 @@ fun AppNavigation() {
                 }
             )
         }
-        composable(Screen.Partidos.route) {
 
+        composable(Screen.Partidos.route) {
             PartidosScreen(
                 uiState = partidoViewModel.uiState,
                 onCrearPartido = {
@@ -81,8 +86,8 @@ fun AppNavigation() {
                 }
             )
         }
-        composable(Screen.CrearPartido.route) {
 
+        composable(Screen.CrearPartido.route) {
             CrearPartidoScreen(
                 onCrearPartido = { titulo, horario, fecha, ubicacion, dificultad, participantes, descripcion ->
                     partidoViewModel.crearPartido(
@@ -94,7 +99,6 @@ fun AppNavigation() {
                         participantes = participantes,
                         descripcion = descripcion
                     )
-
                     navController.popBackStack()
                 },
                 onVolver = {
@@ -102,6 +106,7 @@ fun AppNavigation() {
                 }
             )
         }
+
         composable(Screen.DetallePartido.route) { backStackEntry ->
             val partidoId = backStackEntry.arguments
                 ?.getString("partidoId")
@@ -116,6 +121,41 @@ fun AppNavigation() {
                 usuarioActual = "admin",
                 onAnotarse = { partidoId, usuario ->
                     partidoViewModel.anotarseAPartido(partidoId, usuario)
+                },
+                onCancelarInscripcion = { partidoId, usuario ->
+                    partidoViewModel.cancelarInscripcion(partidoId, usuario)
+                },
+                onVolver = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.Canchas.route) {
+            CanchasScreen(
+                canchas = canchaViewModel.uiState.canchas,
+                onSubirCancha = {
+                    navController.navigate(Screen.CrearCancha.route)
+                },
+                onVerDetalle = { canchaId ->
+                    // navController.navigate(Screen.DetalleCancha.createRoute(canchaId))
+                }
+            )
+        }
+
+        composable(Screen.CrearCancha.route) {
+            CrearCanchaScreen(
+                onCrearCancha = { nombre, ubicacion, descripcion, precio, telefono, horarioApertura, horarioCierre ->
+                    canchaViewModel.crearCancha(
+                        nombre = nombre,
+                        ubicacion = ubicacion,
+                        descripcion = descripcion,
+                        precio = precio,
+                        telefono = telefono,
+                        horarioApertura = horarioApertura,
+                        horarioCierre = horarioCierre
+                    )
+                    navController.popBackStack()
                 },
                 onVolver = {
                     navController.popBackStack()

@@ -72,4 +72,17 @@ class PartidoViewModel : ViewModel() {
 
         return resultado
     }
+    fun cancelarInscripcion(
+        partidoId: Int,
+        usuario: String
+    ): Boolean {
+        val resultado = repository.cancelarInscripcion(
+            partidoId = partidoId,
+            usuario = usuario
+        )
+
+        cargarPartidos()
+
+        return resultado
+    }
 }

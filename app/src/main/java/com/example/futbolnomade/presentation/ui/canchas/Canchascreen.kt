@@ -1,11 +1,10 @@
-package com.example.futbolnomade.presentation.ui.partidos
+package com.example.futbolnomade.presentation.ui.canchas
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,8 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.futbolnomade.domain.model.Partido
-import com.example.futbolnomade.presentation.state.PartidoUiState
+import com.example.futbolnomade.domain.model.Cancha
 import com.example.futbolnomade.presentation.ui.components.AppBottomBar
 
 private val FondoOscuro = Color(0xFF202020)
@@ -23,57 +21,32 @@ private val Verde = Color(0xFF82A820)
 private val BlancoCard = Color(0xFFF8F8F8)
 
 @Composable
-fun PartidosScreen(
-    uiState: PartidoUiState,
-    onCrearPartido: () -> Unit,
-    onVerDetalle: (Int) -> Unit,
-    onVolver: () -> Unit
+fun CanchasScreen(
+    canchas: List<Cancha>,
+    onSubirCancha: () -> Unit,
+    onVerDetalle: (Int) -> Unit
 ) {
     var busqueda by remember { mutableStateOf("") }
-    var filtroSeleccionado by remember { mutableStateOf("Todos") }
-    var ordenSeleccionado by remember { mutableStateOf("Más próximos") }
+    var filtroSeleccionado by remember { mutableStateOf("Disponibilidad") }
 
     val filtros = listOf(
-        "Todos",
-        "Con cupo",
-        "Llenos",
-        "Fácil",
-        "Avanzado"
+        "Disponibilidad",
+        "Disponibles",
+        "No disponibles"
     )
 
-    val ordenes = listOf(
-        "Más próximos",
-        "Más cupos",
-        "Nombre A-Z"
-    )
-
-    val partidosFiltrados = uiState.partidos
-        .filter { partido ->
+    val canchasFiltradas = canchas
+        .filter { cancha ->
             busqueda.isBlank() ||
-                    partido.titulo.contains(busqueda, ignoreCase = true) ||
-                    partido.ubicacion.contains(busqueda, ignoreCase = true) ||
-                    partido.creador.contains(busqueda, ignoreCase = true)
+                    cancha.nombre.contains(busqueda, ignoreCase = true) ||
+                    cancha.ubicacion.contains(busqueda, ignoreCase = true) ||
+                    cancha.propietario.contains(busqueda, ignoreCase = true)
         }
-        .filter { partido ->
+        .filter { cancha ->
             when (filtroSeleccionado) {
-                "Con cupo" -> partido.participantesActuales < partido.participantesMaximos
-                "Llenos" -> partido.participantesActuales >= partido.participantesMaximos
-                "Fácil" -> partido.dificultad.equals("Fácil", ignoreCase = true)
-                "Avanzado" -> partido.dificultad.equals("Avanzado", ignoreCase = true)
+                "Disponibles" -> cancha.disponible
+                "No disponibles" -> !cancha.disponible
                 else -> true
-            }
-        }
-        .let { lista ->
-            when (ordenSeleccionado) {
-                "Más cupos" -> lista.sortedByDescending {
-                    it.participantesMaximos - it.participantesActuales
-                }
-
-                "Nombre A-Z" -> lista.sortedBy {
-                    it.titulo
-                }
-
-                else -> lista
             }
         }
 
@@ -81,20 +54,6 @@ fun PartidosScreen(
         containerColor = FondoOscuro,
         bottomBar = {
             AppBottomBar()
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onCrearPartido,
-                containerColor = Verde,
-                contentColor = Color.Black,
-                shape = CircleShape
-            ) {
-                Text(
-                    text = "+",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
         }
     ) { padding ->
         Column(
@@ -105,7 +64,7 @@ fun PartidosScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Partidos",
+                text = "Canchas",
                 color = Verde,
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold
@@ -116,7 +75,7 @@ fun PartidosScreen(
             OutlinedTextField(
                 value = busqueda,
                 onValueChange = { busqueda = it },
-                placeholder = { Text("Buscar partido") },
+                placeholder = { Text("Buscar cancha") },
                 trailingIcon = {
                     Text(
                         text = "⌕",
@@ -141,50 +100,56 @@ fun PartidosScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            FiltroDropdown(
+            FiltroDropdownCanchas(
                 titulo = "Filtrar por",
                 opciones = filtros,
                 seleccion = filtroSeleccionado,
                 onSeleccionar = { filtroSeleccionado = it }
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            FiltroDropdown(
-                titulo = "Ordenar por",
-                opciones = ordenes,
-                seleccion = ordenSeleccionado,
-                onSeleccionar = { ordenSeleccionado = it }
-            )
-
             Spacer(modifier = Modifier.height(24.dp))
 
-            if (partidosFiltrados.isEmpty()) {
+            if (canchasFiltradas.isEmpty()) {
                 Text(
-                    text = "No se encontraron partidos",
+                    text = "No se encontraron canchas",
                     color = Color.White
                 )
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.weight(1f)
                 ) {
-                    items(partidosFiltrados) { partido ->
-                        PartidoCard(
-                            partido = partido,
-                            onClick = {
-                                onVerDetalle(partido.id)
-                            }
+                    items(canchasFiltradas) { cancha ->
+                        CanchaCard(
+                            cancha = cancha,
+                            onClick = { onVerDetalle(cancha.id) }
                         )
                     }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = onSubirCancha,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    contentColor = Color.Black
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = "Subir mi cancha",
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
 }
 
 @Composable
-fun PartidoCard(
-    partido: Partido,
+fun CanchaCard(
+    cancha: Cancha,
     onClick: () -> Unit
 ) {
     Card(
@@ -202,82 +167,57 @@ fun PartidoCard(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "⚽",
-                style = MaterialTheme.typography.headlineLarge,
-                modifier = Modifier.padding(end = 12.dp)
-            )
-
-            Column(
-                modifier = Modifier.weight(1f)
+            // Imagen placeholder
+            Surface(
+                modifier = Modifier
+                    .size(80.dp)
+                    .padding(end = 12.dp),
+                shape = RoundedCornerShape(8.dp),
+                color = Color(0xFF4CAF50)
             ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "🏟️",
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                }
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = partido.titulo,
+                    text = cancha.nombre,
                     color = Color.Black,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
 
-                Row {
-                    Text(
-                        text = "${partido.horario} hs",
-                        color = Color.Black,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Text(
-                        text = partido.fecha,
-                        color = Color.Black,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
+                Text(
+                    text = "📍 ${cancha.ubicacion}",
+                    color = Color.Black,
+                    style = MaterialTheme.typography.bodySmall
+                )
 
                 Text(
-                    text = partido.dificultad,
+                    text = "⭐ ${cancha.calificacion}",
                     color = Color.Black,
                     style = MaterialTheme.typography.bodySmall
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Text(
-                    text = "📍 ${partido.ubicacion}",
-                    color = Color.Black,
-                    style = MaterialTheme.typography.bodySmall
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "👥 ${partido.participantesActuales}/${partido.participantesMaximos}",
-                    color = Color.Black,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Text(
-                    text = "Creado por: ${partido.creador} ⭐ ${partido.calificacionCreador}",
-                    color = Color.Black,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-
-            Surface(
-                color = Verde,
-                shape = CircleShape,
-                border = BorderStroke(2.dp, Color.Black),
-                modifier = Modifier.size(36.dp)
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center
+                Button(
+                    onClick = onClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (cancha.disponible) Verde else Color.Gray,
+                        contentColor = Color.White
+                    ),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.height(30.dp)
                 ) {
                     Text(
-                        text = "+",
-                        color = Color.Black,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        text = if (cancha.disponible) "Ver disponibilidad" else "No disponible",
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
             }
@@ -286,7 +226,7 @@ fun PartidoCard(
 }
 
 @Composable
-fun FiltroDropdown(
+fun FiltroDropdownCanchas(
     titulo: String,
     opciones: List<String>,
     seleccion: String,
@@ -305,17 +245,13 @@ fun FiltroDropdown(
             modifier = Modifier.width(95.dp)
         )
 
-        Box(
-            modifier = Modifier.weight(1f)
-        ) {
+        Box(modifier = Modifier.weight(1f)) {
             Surface(
                 color = Color.White,
                 shape = RoundedCornerShape(4.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable {
-                        expanded = true
-                    }
+                    .clickable { expanded = true }
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -326,7 +262,6 @@ fun FiltroDropdown(
                         color = Color.Black,
                         modifier = Modifier.weight(1f)
                     )
-
                     Text(
                         text = "⌄",
                         color = Verde,
@@ -337,15 +272,11 @@ fun FiltroDropdown(
 
             DropdownMenu(
                 expanded = expanded,
-                onDismissRequest = {
-                    expanded = false
-                }
+                onDismissRequest = { expanded = false }
             ) {
                 opciones.forEach { opcion ->
                     DropdownMenuItem(
-                        text = {
-                            Text(opcion)
-                        },
+                        text = { Text(opcion) },
                         onClick = {
                             onSeleccionar(opcion)
                             expanded = false
