@@ -1,7 +1,6 @@
 package com.example.futbolnomade.presentation.ui
 
 import android.util.Patterns
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,55 +9,41 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.futbolnomade.presentation.viewModel.AuthResult
+import com.example.futbolnomade.presentation.viewModel.AuthViewModel
 
 @Composable
 fun LoginScreen(
     onLoginSuccess: (String) -> Unit,
-    onSignUpClick: () -> Unit = {}
+    onSignUpClick: () -> Unit = {},
+    authViewModel: AuthViewModel = viewModel()
 ) {
-    val context = LocalContext.current
-
-    var email by remember { mutableStateOf("") }
+    var email    by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    var emailError by remember { mutableStateOf<String?>(null) }
+    var emailError    by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
+    var loginError    by remember { mutableStateOf<String?>(null) }
 
     val darkBackground = Color(0xFF171516)
-    val fieldGray = Color(0xFF7A7A7A)
-    val neonGreen = Color(0xFF00FF7F)
+    val fieldGray      = Color(0xFF7A7A7A)
+    val neonGreen      = Color(0xFF00FF7F)
 
-    fun validarLogin(): Boolean {
-        val cleanEmail = email.trim()
-        val cleanPassword = password.trim()
-
-        emailError = null
+    fun validarCampos(): Boolean {
+        emailError    = null
         passwordError = null
+        loginError    = null
 
-        if (cleanEmail.isEmpty()) {
-            emailError = "Ingresá tu email"
-            return false
-        }
-
-        if (!Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()) {
-            emailError = "Email inválido"
-            return false
-        }
-
-        if (cleanPassword.isEmpty()) {
-            passwordError = "Ingresá tu contraseña"
-            return false
-        }
-
-        if (cleanPassword.length < 6) {
-            passwordError = "La contraseña debe tener al menos 6 caracteres"
-            return false
-        }
+        if (email.trim().isEmpty())  { emailError = "Ingresá tu email"; return false }
+        if (!Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches()) { emailError = "Email inválido"; return false }
+        if (password.trim().isEmpty()) { passwordError = "Ingresá tu contraseña"; return false }
+        if (password.trim().length < 6) { passwordError = "La contraseña debe tener al menos 6 caracteres"; return false }
 
         return true
     }
@@ -70,159 +55,110 @@ fun LoginScreen(
             .padding(horizontal = 36.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(72.dp))
+        Spacer(Modifier.height(72.dp))
 
+        Text("Ingresar", color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Bold)
+
+        Spacer(Modifier.height(72.dp))
+
+        // ── EMAIL ────────────────────────────────────────────────────────
         Text(
-            text = "Ingresar",
-            color = Color.White,
-            fontSize = 30.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(72.dp))
-
-        Text(
-            text = "EMAIL",
-            color = neonGreen,
-            fontSize = 12.sp,
+            "EMAIL", color = neonGreen, fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.Start)
         )
-
         OutlinedTextField(
             value = email,
-            onValueChange = {
-                email = it
-                emailError = null
-            },
+            onValueChange = { email = it; emailError = null; loginError = null },
             placeholder = { Text("hello@reallygreatsite.com", color = Color.White.copy(alpha = 0.75f)) },
-            isError = emailError != null,
+            isError = emailError != null || loginError != null,
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = fieldGray,
+                focusedContainerColor   = fieldGray,
                 unfocusedContainerColor = fieldGray,
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-                errorBorderColor = Color.Red,
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                cursorColor = neonGreen
+                focusedBorderColor      = Color.Transparent,
+                unfocusedBorderColor    = Color.Transparent,
+                errorBorderColor        = Color.Red,
+                focusedTextColor        = Color.White,
+                unfocusedTextColor      = Color.White,
+                cursorColor             = neonGreen
             )
         )
+        emailError?.let { Text(it, color = Color.Red, fontSize = 12.sp, modifier = Modifier.align(Alignment.Start)) }
 
-        emailError?.let {
-            Text(
-                text = it,
-                color = Color.Red,
-                fontSize = 12.sp,
-                modifier = Modifier.align(Alignment.Start)
-            )
-        }
+        Spacer(Modifier.height(14.dp))
 
-        Spacer(modifier = Modifier.height(14.dp))
-
+        // ── PASSWORD ─────────────────────────────────────────────────────
         Text(
-            text = "PASSWORD",
-            color = neonGreen,
-            fontSize = 12.sp,
+            "PASSWORD", color = neonGreen, fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.Start)
         )
-
         OutlinedTextField(
             value = password,
-            onValueChange = {
-                password = it
-                passwordError = null
-            },
+            onValueChange = { password = it; passwordError = null; loginError = null },
             placeholder = { Text("••••••", color = Color.White.copy(alpha = 0.75f)) },
             visualTransformation = PasswordVisualTransformation(),
-            isError = passwordError != null,
+            isError = passwordError != null || loginError != null,
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = fieldGray,
+                focusedContainerColor   = fieldGray,
                 unfocusedContainerColor = fieldGray,
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-                errorBorderColor = Color.Red,
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                cursorColor = neonGreen
+                focusedBorderColor      = Color.Transparent,
+                unfocusedBorderColor    = Color.Transparent,
+                errorBorderColor        = Color.Red,
+                focusedTextColor        = Color.White,
+                unfocusedTextColor      = Color.White,
+                cursorColor             = neonGreen
             )
         )
+        passwordError?.let { Text(it, color = Color.Red, fontSize = 12.sp, modifier = Modifier.align(Alignment.Start)) }
 
-        passwordError?.let {
-            Text(
-                text = it,
-                color = Color.Red,
-                fontSize = 12.sp,
-                modifier = Modifier.align(Alignment.Start)
-            )
+        // Error general de credenciales
+        loginError?.let {
+            Spacer(Modifier.height(4.dp))
+            Text(it, color = Color.Red, fontSize = 12.sp, modifier = Modifier.align(Alignment.Start))
         }
 
-        Spacer(modifier = Modifier.height(36.dp))
+        Spacer(Modifier.height(36.dp))
 
+        // ── Botón login ───────────────────────────────────────────────────
         OutlinedButton(
             onClick = {
-                if (!validarLogin()) return@OutlinedButton
+                if (!validarCampos()) return@OutlinedButton
 
-                val cleanEmail = email.trim()
-                val cleanPassword = password.trim()
-
-                if (cleanEmail == "admin@gmail.com" && cleanPassword == "123456") {
-                    onLoginSuccess(cleanEmail)
-                } else {
-                    Toast.makeText(
-                        context,
-                        "Email o contraseña incorrectos",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                when (val result = authViewModel.login(email.trim(), password.trim())) {
+                    is AuthResult.Success -> onLoginSuccess(email.trim())
+                    is AuthResult.Error   -> loginError = result.mensaje
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
+            modifier = Modifier.fillMaxWidth().height(48.dp),
             shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = Color.White
-            ),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
             border = ButtonDefaults.outlinedButtonBorder.copy(
-                width = 2.dp,
-                brush = androidx.compose.ui.graphics.SolidColor(neonGreen)
+                width = 2.dp, brush = SolidColor(neonGreen)
             )
-        ) {
-            Text("Log in")
-        }
+        ) { Text("Log in") }
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(Modifier.height(18.dp))
 
-        Text(
-            text = "No tenes cuenta? Crea una aquí",
-            color = Color.White,
-            fontSize = 11.sp
-        )
+        Text("No tenés cuenta? Crea una aquí", color = Color.White, fontSize = 11.sp)
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(Modifier.height(10.dp))
 
+        // ── Botón sign up ─────────────────────────────────────────────────
         OutlinedButton(
             onClick = onSignUpClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
+            modifier = Modifier.fillMaxWidth().height(48.dp),
             shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = Color.White
-            ),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
             border = ButtonDefaults.outlinedButtonBorder.copy(
-                width = 2.dp,
-                brush = androidx.compose.ui.graphics.SolidColor(neonGreen)
+                width = 2.dp, brush = SolidColor(neonGreen)
             )
-        ) {
-            Text("Sign up")
-        }
+        ) { Text("Sign up") }
     }
 }
