@@ -5,7 +5,6 @@ sealed class Screen(val route: String) {
     object Login    : Screen("login")
     object Register : Screen("register")
 
-    // nombre y email viajan como argumentos separados para mostrarlos correctamente en Home
     object Home : Screen("home/{nombreUsuario}/{emailUsuario}") {
         fun createRoute(nombre: String, email: String) =
             "home/${nombre.encodeForRoute()}/${email.encodeForRoute()}"
@@ -27,9 +26,15 @@ sealed class Screen(val route: String) {
 
     object Canchas     : Screen("canchas")
     object CrearCancha : Screen("crear_cancha")
+
+    // ── Nuevas rutas de Mis Canchas ───────────────────────────────────────
+    object MisCanchas   : Screen("mis_canchas")
+
+    object AdminCancha  : Screen("admin_cancha/{canchaId}") {
+        fun createRoute(canchaId: Int) = "admin_cancha/$canchaId"
+    }
 }
 
-// Codifica @ y . para que el email no rompa la ruta de navegación
 private fun String.encodeForRoute() =
     this.replace("@", "%40").replace(".", "%2E")
 

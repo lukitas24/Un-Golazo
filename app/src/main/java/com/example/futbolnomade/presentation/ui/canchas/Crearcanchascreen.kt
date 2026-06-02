@@ -1,13 +1,26 @@
 package com.example.futbolnomade.presentation.ui.canchas
 
-
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+private val ColorFondo   = Color(0xFF1A1A1A)
+private val ColorCampo   = Color(0xFF2A2A2A)
+private val ColorBorde   = Color(0xFF2E2E2E)
+private val ColorVerde   = Color(0xFF8BC34A)
+private val ColorTexto   = Color(0xFFEEEEEE)
+private val ColorSub     = Color(0xFF999999)
 
 @Composable
 fun CrearCanchaScreen(
@@ -22,143 +35,134 @@ fun CrearCanchaScreen(
     ) -> Unit,
     onVolver: () -> Unit
 ) {
-    var nombre by remember { mutableStateOf("") }
-    var ubicacion by remember { mutableStateOf("") }
-    var descripcion by remember { mutableStateOf("") }
-    var precio by remember { mutableStateOf("") }
-    var telefono by remember { mutableStateOf("") }
+    var nombre          by remember { mutableStateOf("") }
+    var ubicacion       by remember { mutableStateOf("") }
+    var descripcion     by remember { mutableStateOf("") }
+    var precio          by remember { mutableStateOf("") }
+    var telefono        by remember { mutableStateOf("") }
     var horarioApertura by remember { mutableStateOf("") }
-    var horarioCierre by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf<String?>(null) }
+    var horarioCierre   by remember { mutableStateOf("") }
+    var error           by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(ColorFondo)
             .verticalScroll(rememberScrollState())
-            .padding(24.dp)
     ) {
-        Text(
-            text = "Subir mi cancha",
-            style = MaterialTheme.typography.headlineMedium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = nombre,
-            onValueChange = { nombre = it },
-            label = { Text("Nombre de la cancha") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = ubicacion,
-            onValueChange = { ubicacion = it },
-            label = { Text("Ubicación") },
-            placeholder = { Text("Ej: Puerto Madryn, Mitre 423") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = telefono,
-            onValueChange = { telefono = it },
-            label = { Text("Teléfono de contacto") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = precio,
-            onValueChange = { precio = it },
-            label = { Text("Precio por hora ($)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
+        // ── TopBar ─────────────────────────────────────────────────────────
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            modifier          = Modifier.fillMaxWidth().statusBarsPadding()
+                .padding(horizontal = 4.dp, vertical = 8.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
         ) {
-            OutlinedTextField(
-                value = horarioApertura,
-                onValueChange = { horarioApertura = it },
-                label = { Text("Apertura") },
-                placeholder = { Text("HH:MM") },
-                modifier = Modifier.weight(1f)
-            )
-
-            OutlinedTextField(
-                value = horarioCierre,
-                onValueChange = { horarioCierre = it },
-                label = { Text("Cierre") },
-                placeholder = { Text("HH:MM") },
-                modifier = Modifier.weight(1f)
-            )
+            IconButton(onClick = onVolver) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = ColorTexto)
+            }
+            Text("Subir mi cancha", color = ColorTexto, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Column(
+            modifier            = Modifier.padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            CampoLabel("NOMBRE DE LA CANCHA")
+            Campo(nombre, { nombre = it }, "Ej: Cancha Maracana")
 
-        OutlinedTextField(
-            value = descripcion,
-            onValueChange = { descripcion = it },
-            label = { Text("Descripción opcional") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3
-        )
+            CampoLabel("UBICACIÓN")
+            Campo(ubicacion, { ubicacion = it }, "Ej: Puerto Madryn, Mitre 423")
 
-        Spacer(modifier = Modifier.height(24.dp))
+            CampoLabel("TELÉFONO DE CONTACTO")
+            Campo(telefono, { telefono = it }, "Ej: 2804001234")
 
-        if (error != null) {
-            Text(
-                text = error!!,
-                color = MaterialTheme.colorScheme.error
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-        }
+            CampoLabel("PRECIO POR HORA (\$)")
+            Campo(precio, { precio = it }, "Ej: 5000")
 
-        Button(
-            onClick = {
-                val precioDouble = precio.toDoubleOrNull()
-
-                when {
-                    nombre.isBlank() -> error = "El nombre es obligatorio"
-                    ubicacion.isBlank() -> error = "La ubicación es obligatoria"
-                    telefono.isBlank() -> error = "El teléfono es obligatorio"
-                    precioDouble == null || precioDouble <= 0 -> error = "El precio debe ser mayor a 0"
-                    horarioApertura.isBlank() -> error = "El horario de apertura es obligatorio"
-                    horarioCierre.isBlank() -> error = "El horario de cierre es obligatorio"
-                    else -> {
-                        error = null
-                        onCrearCancha(
-                            nombre.trim(),
-                            ubicacion.trim(),
-                            descripcion.trim(),
-                            precio.trim(),
-                            telefono.trim(),
-                            horarioApertura.trim(),
-                            horarioCierre.trim()
-                        )
-                    }
+            CampoLabel("HORARIO GENERAL")
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text("Apertura", color = ColorSub, fontSize = 11.sp)
+                    Spacer(Modifier.height(4.dp))
+                    Campo(horarioApertura, { horarioApertura = it }, "HH:MM")
                 }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Publicar cancha")
-        }
+                Column(Modifier.weight(1f)) {
+                    Text("Cierre", color = ColorSub, fontSize = 11.sp)
+                    Spacer(Modifier.height(4.dp))
+                    Campo(horarioCierre, { horarioCierre = it }, "HH:MM")
+                }
+            }
 
-        Spacer(modifier = Modifier.height(12.dp))
+            CampoLabel("DESCRIPCIÓN (opcional)")
+            Campo(descripcion, { descripcion = it }, "Césped sintético, techada, vestuarios...", minLines = 3)
 
-        OutlinedButton(
-            onClick = onVolver,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Volver")
+            error?.let {
+                Text(it, color = Color.Red, fontSize = 12.sp)
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    when {
+                        nombre.isBlank()    -> error = "El nombre es obligatorio"
+                        ubicacion.isBlank() -> error = "La ubicación es obligatoria"
+                        telefono.isBlank()  -> error = "El teléfono es obligatorio"
+                        precio.toDoubleOrNull().let { it == null || it <= 0 } ->
+                            error = "El precio debe ser mayor a 0"
+                        horarioApertura.isBlank() -> error = "El horario de apertura es obligatorio"
+                        horarioCierre.isBlank()   -> error = "El horario de cierre es obligatorio"
+                        else -> {
+                            error = null
+                            onCrearCancha(
+                                nombre.trim(), ubicacion.trim(), descripcion.trim(),
+                                precio.trim(), telefono.trim(),
+                                horarioApertura.trim(), horarioCierre.trim()
+                            )
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape    = RoundedCornerShape(10.dp),
+                colors   = ButtonDefaults.buttonColors(containerColor = ColorVerde)
+            ) {
+                Text("Publicar cancha", color = Color.Black, fontWeight = FontWeight.SemiBold)
+            }
+
+            OutlinedButton(
+                onClick  = onVolver,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape    = RoundedCornerShape(10.dp),
+                colors   = ButtonDefaults.outlinedButtonColors(contentColor = ColorTexto)
+            ) { Text("Cancelar") }
+
+            Spacer(Modifier.height(24.dp))
         }
     }
+}
+
+@Composable
+private fun CampoLabel(texto: String) {
+    Text(texto, color = ColorVerde, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(bottom = 2.dp))
+}
+
+@Composable
+private fun Campo(valor: String, onChange: (String) -> Unit, placeholder: String, minLines: Int = 1) {
+    OutlinedTextField(
+        value         = valor,
+        onValueChange = onChange,
+        placeholder   = { Text(placeholder, color = ColorSub, fontSize = 13.sp) },
+        minLines      = minLines,
+        modifier      = Modifier.fillMaxWidth(),
+        shape         = RoundedCornerShape(10.dp),
+        colors        = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor   = ColorCampo,
+            unfocusedContainerColor = ColorCampo,
+            focusedBorderColor      = ColorVerde,
+            unfocusedBorderColor    = ColorBorde,
+            focusedTextColor        = ColorTexto,
+            unfocusedTextColor      = ColorTexto,
+            cursorColor             = ColorVerde
+        )
+    )
 }
