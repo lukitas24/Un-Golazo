@@ -21,6 +21,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.futbolnomade.presentation.viewModel.AuthResult
+import com.example.futbolnomade.presentation.viewModel.AuthViewModel
 
 private val ColorFondo    = Color(0xFF171516)
 private val ColorCampo    = Color(0xFF7A7A7A)
@@ -31,7 +33,8 @@ private val ColorSubtexto = Color.White.copy(alpha = 0.75f)
 
 @Composable
 fun RegisterScreen(
-    onRegistroExitoso: (nombreUsuario: String) -> Unit,
+    authViewModel: AuthViewModel,           // ← siempre recibido desde AppNavigation, sin default
+    onRegistroExitoso: (nombre: String, email: String) -> Unit,
     onVolver: () -> Unit
 ) {
     var nombre    by remember { mutableStateOf("") }
@@ -43,6 +46,7 @@ fun RegisterScreen(
     var emailError     by remember { mutableStateOf<String?>(null) }
     var passwordError  by remember { mutableStateOf<String?>(null) }
     var confirmarError by remember { mutableStateOf<String?>(null) }
+    var registroError  by remember { mutableStateOf<String?>(null) }
 
     var verPassword  by remember { mutableStateOf(false) }
     var verConfirmar by remember { mutableStateOf(false) }
@@ -52,6 +56,7 @@ fun RegisterScreen(
         emailError     = null
         passwordError  = null
         confirmarError = null
+        registroError  = null
 
         if (nombre.trim().isEmpty())       { nombreError    = "Ingresá tu nombre";                          return false }
         if (nombre.trim().length < 2)      { nombreError    = "El nombre debe tener al menos 2 caracteres"; return false }
@@ -77,12 +82,7 @@ fun RegisterScreen(
 
         Row(modifier = Modifier.fillMaxWidth()) {
             IconButton(onClick = onVolver) {
-                Icon(
-                    // AutoMirrored evita el warning de deprecación
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Volver",
-                    tint = ColorTexto
-                )
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = ColorTexto)
             }
         }
 
@@ -92,7 +92,6 @@ fun RegisterScreen(
 
         Spacer(Modifier.height(40.dp))
 
-        // ── NOMBRE ───────────────────────────────────────────────────────
         CampoLabel("NOMBRE")
         OutlinedTextField(
             value = nombre,
@@ -108,13 +107,12 @@ fun RegisterScreen(
 
         Spacer(Modifier.height(14.dp))
 
-        // ── EMAIL ────────────────────────────────────────────────────────
         CampoLabel("EMAIL")
         OutlinedTextField(
             value = email,
-            onValueChange = { email = it; emailError = null },
+            onValueChange = { email = it; emailError = null; registroError = null },
             placeholder = { Text("hello@reallygreatsite.com", color = ColorSubtexto) },
-            isError = emailError != null,
+            isError = emailError != null || registroError != null,
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
@@ -124,21 +122,17 @@ fun RegisterScreen(
 
         Spacer(Modifier.height(14.dp))
 
-        // ── CONTRASEÑA ───────────────────────────────────────────────────
         CampoLabel("CONTRASEÑA")
         OutlinedTextField(
             value = password,
             onValueChange = { password = it; passwordError = null },
             placeholder = { Text("••••••", color = ColorSubtexto) },
-            visualTransformation = if (verPassword) VisualTransformation.None
-            else PasswordVisualTransformation(),
+            visualTransformation = if (verPassword) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { verPassword = !verPassword }) {
                     Icon(
-                        imageVector = if (verPassword) Icons.Filled.VisibilityOff
-                        else             Icons.Filled.Visibility,
-                        contentDescription = if (verPassword) "Ocultar" else "Mostrar",
-                        tint = ColorVerde
+                        imageVector = if (verPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                        contentDescription = null, tint = ColorVerde
                     )
                 }
             },
@@ -152,21 +146,17 @@ fun RegisterScreen(
 
         Spacer(Modifier.height(14.dp))
 
-        // ── CONFIRMAR CONTRASEÑA ─────────────────────────────────────────
         CampoLabel("CONFIRMAR CONTRASEÑA")
         OutlinedTextField(
             value = confirmar,
             onValueChange = { confirmar = it; confirmarError = null },
             placeholder = { Text("••••••", color = ColorSubtexto) },
-            visualTransformation = if (verConfirmar) VisualTransformation.None
-            else PasswordVisualTransformation(),
+            visualTransformation = if (verConfirmar) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { verConfirmar = !verConfirmar }) {
                     Icon(
-                        imageVector = if (verConfirmar) Icons.Filled.VisibilityOff
-                        else              Icons.Filled.Visibility,
-                        contentDescription = if (verConfirmar) "Ocultar" else "Mostrar",
-                        tint = ColorVerde
+                        imageVector = if (verConfirmar) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                        contentDescription = null, tint = ColorVerde
                     )
                 }
             },
@@ -177,18 +167,27 @@ fun RegisterScreen(
             colors = campoColors()
         )
         ErrorTexto(confirmarError)
+        registroError?.let {
+            Spacer(Modifier.height(4.dp))
+            Text(it, color = ColorError, fontSize = 12.sp)
+        }
 
         Spacer(Modifier.height(36.dp))
 
         OutlinedButton(
-            onClick = { if (validar()) onRegistroExitoso(nombre.trim()) },
+            onClick = {
+                if (!validar()) return@OutlinedButton
+
+                // Registrar en el ViewModel compartido
+                when (val result = authViewModel.registrar(nombre.trim(), email.trim(), password.trim())) {
+                    is AuthResult.Success -> onRegistroExitoso(nombre.trim(), email.trim())
+                    is AuthResult.Error   -> registroError = result.mensaje
+                }
+            },
             modifier = Modifier.fillMaxWidth().height(48.dp),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorTexto),
-            border = ButtonDefaults.outlinedButtonBorder.copy(
-                width = 2.dp,
-                brush = SolidColor(ColorVerde)
-            )
+            border = ButtonDefaults.outlinedButtonBorder.copy(width = 2.dp, brush = SolidColor(ColorVerde))
         ) {
             Text("Crear cuenta", fontWeight = FontWeight.SemiBold)
         }
@@ -205,20 +204,13 @@ fun RegisterScreen(
 
 @Composable
 private fun CampoLabel(texto: String) {
-    Text(
-        text = texto,
-        color = ColorVerde,
-        fontSize = 12.sp,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
-    )
+    Text(texto, color = ColorVerde, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp))
 }
 
 @Composable
 private fun ErrorTexto(error: String?) {
-    error?.let {
-        Text(text = it, color = ColorError, fontSize = 12.sp, modifier = Modifier.fillMaxWidth())
-    }
+    error?.let { Text(it, color = ColorError, fontSize = 12.sp, modifier = Modifier.fillMaxWidth()) }
 }
 
 @Composable

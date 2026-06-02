@@ -14,15 +14,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.futbolnomade.presentation.viewModel.AuthResult
 import com.example.futbolnomade.presentation.viewModel.AuthViewModel
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (String) -> Unit,
-    onSignUpClick: () -> Unit = {},
-    authViewModel: AuthViewModel = viewModel()
+    authViewModel: AuthViewModel,           // ← siempre recibido desde AppNavigation, sin default
+    onLoginSuccess: (nombre: String, email: String) -> Unit,
+    onSignUpClick: () -> Unit = {}
 ) {
     var email    by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -61,12 +60,8 @@ fun LoginScreen(
 
         Spacer(Modifier.height(72.dp))
 
-        // ── EMAIL ────────────────────────────────────────────────────────
-        Text(
-            "EMAIL", color = neonGreen, fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.Start)
-        )
+        Text("EMAIL", color = neonGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.Start))
         OutlinedTextField(
             value = email,
             onValueChange = { email = it; emailError = null; loginError = null },
@@ -86,16 +81,14 @@ fun LoginScreen(
                 cursorColor             = neonGreen
             )
         )
-        emailError?.let { Text(it, color = Color.Red, fontSize = 12.sp, modifier = Modifier.align(Alignment.Start)) }
+        emailError?.let {
+            Text(it, color = Color.Red, fontSize = 12.sp, modifier = Modifier.align(Alignment.Start))
+        }
 
         Spacer(Modifier.height(14.dp))
 
-        // ── PASSWORD ─────────────────────────────────────────────────────
-        Text(
-            "PASSWORD", color = neonGreen, fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.Start)
-        )
+        Text("PASSWORD", color = neonGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.Start))
         OutlinedTextField(
             value = password,
             onValueChange = { password = it; passwordError = null; loginError = null },
@@ -116,9 +109,9 @@ fun LoginScreen(
                 cursorColor             = neonGreen
             )
         )
-        passwordError?.let { Text(it, color = Color.Red, fontSize = 12.sp, modifier = Modifier.align(Alignment.Start)) }
-
-        // Error general de credenciales
+        passwordError?.let {
+            Text(it, color = Color.Red, fontSize = 12.sp, modifier = Modifier.align(Alignment.Start))
+        }
         loginError?.let {
             Spacer(Modifier.height(4.dp))
             Text(it, color = Color.Red, fontSize = 12.sp, modifier = Modifier.align(Alignment.Start))
@@ -126,14 +119,17 @@ fun LoginScreen(
 
         Spacer(Modifier.height(36.dp))
 
-        // ── Botón login ───────────────────────────────────────────────────
         OutlinedButton(
             onClick = {
                 if (!validarCampos()) return@OutlinedButton
 
                 when (val result = authViewModel.login(email.trim(), password.trim())) {
-                    is AuthResult.Success -> onLoginSuccess(email.trim())
-                    is AuthResult.Error   -> loginError = result.mensaje
+                    is AuthResult.Success -> {
+                        // Pasar nombre real del usuario (no el email) al Home
+                        val usuario = authViewModel.usuarioActual
+                        onLoginSuccess(usuario?.nombre ?: email.trim(), email.trim())
+                    }
+                    is AuthResult.Error -> loginError = result.mensaje
                 }
             },
             modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -150,7 +146,6 @@ fun LoginScreen(
 
         Spacer(Modifier.height(10.dp))
 
-        // ── Botón sign up ─────────────────────────────────────────────────
         OutlinedButton(
             onClick = onSignUpClick,
             modifier = Modifier.fillMaxWidth().height(48.dp),

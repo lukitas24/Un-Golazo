@@ -31,24 +31,20 @@ import com.example.futbolnomade.presentation.viewModel.CanchaViewModel
 import com.example.futbolnomade.presentation.ui.components.AppBottomBar
 import com.example.futbolnomade.presentation.viewModel.PerfilViewModel
 
-// Rutas donde NO se muestra el bottom bar
 private val rutasSinBottomBar = setOf(Screen.Login.route, Screen.Register.route)
 
 @Composable
 fun AppNavigation() {
 
-    val navController = rememberNavController()
-
+    val navController  = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
+    val currentRoute   = backStackEntry?.destination?.route
 
-    // authViewModel compartido entre Login y Register para que los
-    // usuarios registrados persistan durante la sesión de la app
-    val authViewModel: AuthViewModel    = viewModel()
-    val homeViewModel: HomeViewModel    = viewModel()
+    val authViewModel:    AuthViewModel    = viewModel()
+    val homeViewModel:    HomeViewModel    = viewModel()
     val partidoViewModel: PartidoViewModel = viewModel()
-    val canchaViewModel: CanchaViewModel   = viewModel()
-    val perfilViewModel: PerfilViewModel   = viewModel()
+    val canchaViewModel:  CanchaViewModel  = viewModel()
+    val perfilViewModel:  PerfilViewModel  = viewModel()
 
     Scaffold(
         bottomBar = {
@@ -59,34 +55,32 @@ fun AppNavigation() {
     ) { padding ->
 
         NavHost(
-            navController = navController,
+            navController    = navController,
             startDestination = Screen.Login.route,
-            modifier = Modifier.padding(padding)
+            modifier         = Modifier.padding(padding)
         ) {
 
             // 🔐 LOGIN
             composable(Screen.Login.route) {
                 LoginScreen(
                     authViewModel = authViewModel,
-                    onLoginSuccess = { email ->
-                        navController.navigate(Screen.Home.createRoute(email)) {
+                    onLoginSuccess = { nombre, email ->
+                        perfilViewModel.inicializar(nombre, email)
+                        navController.navigate(Screen.Home.createRoute(nombre, email)) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
                     },
-                    onSignUpClick = {
-                        navController.navigate(Screen.Register.route)
-                    }
+                    onSignUpClick = { navController.navigate(Screen.Register.route) }
                 )
             }
 
             // 📝 REGISTER
             composable(Screen.Register.route) {
                 RegisterScreen(
-                    onRegistroExitoso = { nombre ->
-                        // Registrar en el ViewModel con los datos del form
-                        // (RegisterScreen llama onRegistroExitoso solo si validó,
-                        //  aquí navegamos directo al home con el nombre)
-                        navController.navigate(Screen.Home.createRoute(nombre)) {
+                    authViewModel = authViewModel,
+                    onRegistroExitoso = { nombre, email ->
+                        perfilViewModel.inicializar(nombre, email)
+                        navController.navigate(Screen.Home.createRoute(nombre, email)) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
                     },
@@ -97,36 +91,37 @@ fun AppNavigation() {
             // 🏠 HOME
             composable(
                 route = Screen.Home.route,
-                arguments = listOf(navArgument("nombreUsuario") { type = NavType.StringType })
+                arguments = listOf(
+                    navArgument("nombreUsuario") { type = NavType.StringType },
+                    navArgument("emailUsuario")  { type = NavType.StringType }
+                )
             ) { backStackEntry ->
-
-                val nombreUsuario = backStackEntry.arguments?.getString("nombreUsuario") ?: ""
+                val nombre = backStackEntry.arguments?.getString("nombreUsuario")
+                    ?.decodeFromRoute() ?: ""
+                val email  = backStackEntry.arguments?.getString("emailUsuario")
+                    ?.decodeFromRoute() ?: ""
 
                 HomeScreen(
-                    nombreUsuario = nombreUsuario,
-                    emailUsuario  = perfilViewModel.email,
-                    homeViewModel = homeViewModel,
-                    onIrAPartidos    = { navController.navigate(Screen.Partidos.route) },
-                    onIrACanchas     = { navController.navigate(Screen.Canchas.route) },
-                    onIrAMisPartidos = { navController.navigate(Screen.Partidos.route) },
-                    onIrAMisCanchas  = { navController.navigate(Screen.Canchas.route) },
-                    onIrAMisReservas = { navController.navigate(Screen.Partidos.route) },
-                    onIrACercaMio    = { navController.navigate(Screen.Canchas.route) },
-                    onBuscarPartido  = { navController.navigate(Screen.Search.route) },
-                    onVerDetallePartido = { partidoId ->
-                        navController.navigate(Screen.DetallePartido.createRoute(partidoId))
-                    },
-                    onIrAElementos = { navController.navigate(Screen.Elementos.route) },
-                    onIrAAcerca    = { navController.navigate(Screen.Acerca.route) }
+                    nombreUsuario       = nombre,
+                    emailUsuario        = email,
+                    homeViewModel       = homeViewModel,
+                    onIrAPartidos       = { navController.navigate(Screen.Partidos.route) },
+                    onIrACanchas        = { navController.navigate(Screen.Canchas.route) },
+                    onIrAMisPartidos    = { navController.navigate(Screen.Partidos.route) },
+                    onIrAMisCanchas     = { navController.navigate(Screen.Canchas.route) },
+                    onIrAMisReservas    = { navController.navigate(Screen.Partidos.route) },
+                    onIrACercaMio       = { navController.navigate(Screen.Canchas.route) },
+                    onBuscarPartido     = { navController.navigate(Screen.Search.route) },
+                    onVerDetallePartido = { id -> navController.navigate(Screen.DetallePartido.createRoute(id)) },
+                    onIrAElementos      = { navController.navigate(Screen.Elementos.route) },
+                    onIrAAcerca         = { navController.navigate(Screen.Acerca.route) }
                 )
             }
 
-            // 📌 ELEMENTOS
             composable(Screen.Elementos.route) {
                 ElementosScreen(onVolver = { navController.popBackStack() })
             }
 
-            // ℹ️ ACERCA
             composable(Screen.Acerca.route) {
                 AcercaScreen(onVolver = { navController.popBackStack() })
             }
@@ -134,14 +129,13 @@ fun AppNavigation() {
             // ⚽ PARTIDOS
             composable(Screen.Partidos.route) {
                 PartidosScreen(
-                    uiState = partidoViewModel.uiState,
+                    uiState        = partidoViewModel.uiState,
                     onCrearPartido = { navController.navigate(Screen.CrearPartido.route) },
                     onVerDetalle   = { id -> navController.navigate(Screen.DetallePartido.createRoute(id)) },
                     onVolver       = { navController.popBackStack() }
                 )
             }
 
-            // ➕ CREAR PARTIDO
             composable(Screen.CrearPartido.route) {
                 CrearPartidoScreen(
                     onCrearPartido = { titulo, horario, fecha, ubicacion, dificultad, participantes, descripcion ->
@@ -152,33 +146,31 @@ fun AppNavigation() {
                 )
             }
 
-            // 📄 DETALLE PARTIDO
             composable(
                 route = Screen.DetallePartido.route,
                 arguments = listOf(navArgument("partidoId") { type = NavType.IntType })
             ) { backStackEntry ->
-                val partidoId = backStackEntry.arguments?.getString("partidoId")?.toIntOrNull()
+                val partidoId = backStackEntry.arguments?.getInt("partidoId")
                 val partido   = partidoViewModel.uiState.partidos.find { it.id == partidoId }
 
                 DetallePartidoScreen(
-                    partido = partido,
-                    usuarioActual = authViewModel.usuarioActual?.email ?: "invitado",
-                    onAnotarse           = { id, u -> partidoViewModel.anotarseAPartido(id, u) },
+                    partido               = partido,
+                    usuarioActual         = authViewModel.usuarioActual?.email ?: "invitado",
+                    onAnotarse            = { id, u -> partidoViewModel.anotarseAPartido(id, u) },
                     onCancelarInscripcion = { id, u -> partidoViewModel.cancelarInscripcion(id, u) },
-                    onVolver             = { navController.popBackStack() }
+                    onVolver              = { navController.popBackStack() }
                 )
             }
 
             // 🏟 CANCHAS
             composable(Screen.Canchas.route) {
                 CanchasScreen(
-                    canchas      = canchaViewModel.uiState.canchas,
+                    canchas       = canchaViewModel.uiState.canchas,
                     onSubirCancha = { navController.navigate(Screen.CrearCancha.route) },
-                    onVerDetalle  = { /* futuro */ }
+                    onVerDetalle  = {}
                 )
             }
 
-            // ➕ CREAR CANCHA
             composable(Screen.CrearCancha.route) {
                 CrearCanchaScreen(
                     onCrearCancha = { nombre, ubicacion, descripcion, precio, telefono, horarioApertura, horarioCierre ->
@@ -189,13 +181,10 @@ fun AppNavigation() {
                 )
             }
 
-            // 🔍 SEARCH
-            composable(Screen.Search.route) { /* TODO: SearchScreen() */ }
-
-            // 📅 CALENDAR
+            composable(Screen.Search.route)   { /* TODO: SearchScreen() */ }
             composable(Screen.Calendar.route) { /* TODO: CalendarScreen() */ }
 
-            // 👤 PERFIL
+            // 👤 PERFIL — lee siempre del PerfilViewModel (ya sincronizado con el usuario)
             composable(Screen.Perfil.route) {
                 PerfilScreen(
                     nombre   = perfilViewModel.nombre,
@@ -207,6 +196,7 @@ fun AppNavigation() {
                     onCalificar    = {},
                     onCerrarSesion = {
                         authViewModel.logout()
+                        perfilViewModel.limpiar()        // ← borra datos al cerrar sesión
                         navController.navigate(Screen.Login.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
@@ -221,6 +211,8 @@ fun AppNavigation() {
                     emailActual  = perfilViewModel.email,
                     onGuardar = { nombre, email, password, uri ->
                         perfilViewModel.actualizarPerfil(nombre, email, uri)
+                        // También actualizar en AuthViewModel para que el login siga funcionando
+                        authViewModel.actualizarUsuarioActual(nombre, email, password)
                         navController.popBackStack()
                     },
                     onVolver = { navController.popBackStack() }

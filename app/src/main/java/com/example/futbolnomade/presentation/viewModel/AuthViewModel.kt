@@ -18,16 +18,13 @@ sealed class AuthResult {
 
 class AuthViewModel : ViewModel() {
 
-    // Lista de usuarios registrados (en memoria; reemplazar por Room/API en el futuro)
     private val usuarios = mutableListOf(
         Usuario(nombre = "Admin", email = "admin@gmail.com", password = "123456")
     )
 
-    // Usuario actualmente logueado
     var usuarioActual by mutableStateOf<Usuario?>(null)
         private set
 
-    // ── Login ──────────────────────────────────────────────────────────────
     fun login(email: String, password: String): AuthResult {
         val cleanEmail    = email.trim().lowercase()
         val cleanPassword = password.trim()
@@ -44,23 +41,35 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // ── Registro ───────────────────────────────────────────────────────────
     fun registrar(nombre: String, email: String, password: String): AuthResult {
         val cleanEmail = email.trim().lowercase()
-        val cleanNombre = nombre.trim()
-        val cleanPassword = password.trim()
 
         if (usuarios.any { it.email.lowercase() == cleanEmail }) {
             return AuthResult.Error("Ya existe una cuenta con ese email")
         }
 
-        val nuevo = Usuario(nombre = cleanNombre, email = cleanEmail, password = cleanPassword)
+        val nuevo = Usuario(nombre = nombre.trim(), email = cleanEmail, password = password.trim())
         usuarios.add(nuevo)
         usuarioActual = nuevo
         return AuthResult.Success
     }
 
-    // ── Logout ─────────────────────────────────────────────────────────────
+    // Actualiza nombre/email/password del usuario actual (desde EditarPerfil)
+    fun actualizarUsuarioActual(nombre: String, email: String, password: String) {
+        val actual = usuarioActual ?: return
+        val index  = usuarios.indexOfFirst { it.email.lowercase() == actual.email.lowercase() }
+        if (index == -1) return
+
+        val nuevaPassword = if (password.isBlank()) actual.password else password.trim()
+        val actualizado   = actual.copy(
+            nombre   = nombre.trim().ifBlank { actual.nombre },
+            email    = email.trim().lowercase().ifBlank { actual.email },
+            password = nuevaPassword
+        )
+        usuarios[index] = actualizado
+        usuarioActual   = actualizado
+    }
+
     fun logout() {
         usuarioActual = null
     }
