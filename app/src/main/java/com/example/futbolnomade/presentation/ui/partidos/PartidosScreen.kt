@@ -1,6 +1,7 @@
 package com.example.futbolnomade.presentation.ui.partidos
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -68,114 +69,75 @@ fun PartidosScreen(
                 "Más cupos" -> lista.sortedByDescending {
                     it.participantesMaximos - it.participantesActuales
                 }
-
-                "Nombre A-Z" -> lista.sortedBy {
-                    it.titulo
-                }
-
+                "Nombre A-Z" -> lista.sortedBy { it.titulo }
                 else -> lista
             }
         }
 
-    Scaffold(
-        containerColor = FondoOscuro,
-        bottomBar = {
-            AppBottomBar()
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onCrearPartido,
-                containerColor = Verde,
-                contentColor = Color.Black,
-                shape = CircleShape
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(FondoOscuro)
+            .padding(horizontal = 24.dp, vertical = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+        Text(
+            text = "Partidos",
+            color = Verde,
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        OutlinedTextField(
+            value = busqueda,
+            onValueChange = { busqueda = it },
+            placeholder = { Text("Buscar partido") },
+            trailingIcon = {
+                Text("⌕", color = Verde)
+            },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(6.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
+            )
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        FiltroDropdown(
+            titulo = "Filtrar por",
+            opciones = filtros,
+            seleccion = filtroSeleccionado,
+            onSeleccionar = { filtroSeleccionado = it }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        FiltroDropdown(
+            titulo = "Ordenar por",
+            opciones = ordenes,
+            seleccion = ordenSeleccionado,
+            onSeleccionar = { ordenSeleccionado = it }
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        if (partidosFiltrados.isEmpty()) {
+            Text("No se encontraron partidos", color = Color.White)
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f)
             ) {
-                Text(
-                    text = "+",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 24.dp, vertical = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Partidos",
-                color = Verde,
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            OutlinedTextField(
-                value = busqueda,
-                onValueChange = { busqueda = it },
-                placeholder = { Text("Buscar partido") },
-                trailingIcon = {
-                    Text(
-                        text = "⌕",
-                        color = Verde,
-                        style = MaterialTheme.typography.headlineSmall
+                items(partidosFiltrados) { partido ->
+                    PartidoCard(
+                        partido = partido,
+                        onClick = { onVerDetalle(partido.id) }
                     )
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(6.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White,
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    focusedPlaceholderColor = Color.Gray,
-                    unfocusedPlaceholderColor = Color.Gray
-                )
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            FiltroDropdown(
-                titulo = "Filtrar por",
-                opciones = filtros,
-                seleccion = filtroSeleccionado,
-                onSeleccionar = { filtroSeleccionado = it }
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            FiltroDropdown(
-                titulo = "Ordenar por",
-                opciones = ordenes,
-                seleccion = ordenSeleccionado,
-                onSeleccionar = { ordenSeleccionado = it }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            if (partidosFiltrados.isEmpty()) {
-                Text(
-                    text = "No se encontraron partidos",
-                    color = Color.White
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(partidosFiltrados) { partido ->
-                        PartidoCard(
-                            partido = partido,
-                            onClick = {
-                                onVerDetalle(partido.id)
-                            }
-                        )
-                    }
                 }
             }
         }

@@ -1,26 +1,42 @@
 package com.example.futbolnomade.presentation.navigation
 
 sealed class Screen(val route: String) {
-    object Login : Screen("login")
 
-    object Home : Screen("home/{nombreUsuario}") {
-        fun createRoute(nombreUsuario: String): String {
-            return "home/$nombreUsuario"
-        }
+    object Login    : Screen("login")
+    object Register : Screen("register")
+
+    object Home : Screen("home/{nombreUsuario}/{emailUsuario}") {
+        fun createRoute(nombre: String, email: String) =
+            "home/${nombre.encodeForRoute()}/${email.encodeForRoute()}"
     }
 
-    object Elementos : Screen("elementos")
-    object Acerca : Screen("acerca")
+    object Elementos    : Screen("elementos")
+    object Acerca       : Screen("acerca")
+    object Search       : Screen("search")
+    object Calendar     : Screen("calendar")
+    object Perfil       : Screen("perfil")
+    object EditarPerfil : Screen("editar_perfil")
 
-    object Partidos : Screen("partidos")
+    object Partidos     : Screen("partidos")
     object CrearPartido : Screen("crear_partido")
 
-    object Canchas : Screen("canchas")
-    object CrearCancha : Screen("crearCancha")
-
     object DetallePartido : Screen("detalle_partido/{partidoId}") {
-        fun createRoute(partidoId: Int): String {
-            return "detalle_partido/$partidoId"
-        }
+        fun createRoute(partidoId: Int) = "detalle_partido/$partidoId"
+    }
+
+    object Canchas     : Screen("canchas")
+    object CrearCancha : Screen("crear_cancha")
+
+    // ── Nuevas rutas de Mis Canchas ───────────────────────────────────────
+    object MisCanchas   : Screen("mis_canchas")
+
+    object AdminCancha  : Screen("admin_cancha/{canchaId}") {
+        fun createRoute(canchaId: Int) = "admin_cancha/$canchaId"
     }
 }
+
+private fun String.encodeForRoute() =
+    this.replace("@", "%40").replace(".", "%2E")
+
+fun String.decodeFromRoute() =
+    this.replace("%40", "@").replace("%2E", ".")
