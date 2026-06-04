@@ -33,6 +33,11 @@ sealed class Screen(val route: String) {
     object AdminCancha  : Screen("admin_cancha/{canchaId}") {
         fun createRoute(canchaId: Int) = "admin_cancha/$canchaId"
     }
+    object DetalleCancha : Screen("detalle_cancha/{canchaId}") {
+        fun createRoute(canchaId: Int) = "detalle_cancha/$canchaId"
+    }
+
+    object CercaDeMi : Screen("cerca_de_mi")
 }
 
 private fun String.encodeForRoute() =
