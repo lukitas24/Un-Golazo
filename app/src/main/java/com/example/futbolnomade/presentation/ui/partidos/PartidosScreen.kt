@@ -34,19 +34,8 @@ fun PartidosScreen(
     var filtroSeleccionado by remember { mutableStateOf("Todos") }
     var ordenSeleccionado by remember { mutableStateOf("Más próximos") }
 
-    val filtros = listOf(
-        "Todos",
-        "Con cupo",
-        "Llenos",
-        "Fácil",
-        "Avanzado"
-    )
-
-    val ordenes = listOf(
-        "Más próximos",
-        "Más cupos",
-        "Nombre A-Z"
-    )
+    val filtros = listOf("Todos", "Con cupo", "Llenos", "Fácil", "Avanzado")
+    val ordenes = listOf("Más próximos", "Más cupos", "Nombre A-Z")
 
     val partidosFiltrados = uiState.partidos
         .filter { partido ->
@@ -74,70 +63,93 @@ fun PartidosScreen(
             }
         }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(FondoOscuro)
-            .padding(horizontal = 24.dp, vertical = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-
-        Text(
-            text = "Partidos",
-            color = Verde,
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        OutlinedTextField(
-            value = busqueda,
-            onValueChange = { busqueda = it },
-            placeholder = { Text("Buscar partido") },
-            trailingIcon = {
-                Text("⌕", color = Verde)
-            },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(6.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
-            )
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        FiltroDropdown(
-            titulo = "Filtrar por",
-            opciones = filtros,
-            seleccion = filtroSeleccionado,
-            onSeleccionar = { filtroSeleccionado = it }
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        FiltroDropdown(
-            titulo = "Ordenar por",
-            opciones = ordenes,
-            seleccion = ordenSeleccionado,
-            onSeleccionar = { ordenSeleccionado = it }
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        if (partidosFiltrados.isEmpty()) {
-            Text("No se encontraron partidos", color = Color.White)
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f)
+    // Usamos Scaffold para manejar fácilmente el botón flotante y el BottomBar si lo necesitas
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onCrearPartido,
+                containerColor = Verde,
+                contentColor = Color.Black,
+                shape = CircleShape,
+                modifier = Modifier.padding(bottom = 16.dp, end = 8.dp) // Ajuste para que no tape contenido
             ) {
-                items(partidosFiltrados) { partido ->
-                    PartidoCard(
-                        partido = partido,
-                        onClick = { onVerDetalle(partido.id) }
-                    )
+                Text(
+                    text = "+",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        floatingActionButtonPosition = FabPosition.End,
+        bottomBar = {
+            // Aquí puedes llamar a tu AppBottomBar() si lo necesitas más adelante
+        }
+    ) { paddingValores ->
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(FondoOscuro)
+                .padding(paddingValores) // Respeta el espacio del Scaffold
+                .padding(horizontal = 24.dp, vertical = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            Text(
+                text = "Partidos",
+                color = Verde,
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            OutlinedTextField(
+                value = busqueda,
+                onValueChange = { busqueda = it },
+                placeholder = { Text("Buscar partido") },
+                trailingIcon = { Text("⌕", color = Verde) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(6.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White
+                )
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            FiltroDropdown(
+                titulo = "Filtrar por",
+                opciones = filtros,
+                seleccion = filtroSeleccionado,
+                onSeleccionar = { filtroSeleccionado = it }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            FiltroDropdown(
+                titulo = "Ordenar por",
+                opciones = ordenes,
+                seleccion = ordenSeleccionado,
+                onSeleccionar = { ordenSeleccionado = it }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if (partidosFiltrados.isEmpty()) {
+                Text("No se encontraron partidos", color = Color.White)
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    items(partidosFiltrados) { partido ->
+                        PartidoCard(
+                            partido = partido,
+                            onClick = { onVerDetalle(partido.id) }
+                        )
+                    }
                 }
             }
         }
