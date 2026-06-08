@@ -2,6 +2,7 @@ package com.example.futbolnomade.presentation.ui.canchas
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.futbolnomade.domain.model.HorarioDisponible
 import com.example.futbolnomade.presentation.viewModel.CanchaViewModel
+import java.util.Locale
 
 private val ColorFondo    = Color(0xFF1A1A1A)
 private val ColorTarjeta  = Color(0xFF242424)
@@ -37,13 +39,15 @@ private val DIAS = listOf("Lunes","Martes","Miércoles","Jueves","Viernes","Sáb
 @Composable
 fun AdminCanchaScreen(
     canchaId: Int,
-    canchaViewModel: CanchaViewModel,       // ← ViewModel completo
+    canchaViewModel: CanchaViewModel,
     onEliminarYVolver: () -> Unit,
     onVolver: () -> Unit
 ) {
-    // Lee reactivamente: cada vez que el ViewModel muta, Compose recompone
-    val cancha = canchaViewModel.getCanchaById(canchaId)
+    // Estado para controlar y forzar la recomposición de los horarios cuando mute el ViewModel
+    var versionHorarios by remember { mutableStateOf(0) }
 
+    // Trae la cancha de forma reactiva basándose en la versión actual
+    val cancha = canchaViewModel.uiState.canchas.find { it.id == canchaId }
     if (cancha == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Cancha no encontrada", color = ColorSubtexto)
@@ -51,7 +55,7 @@ fun AdminCanchaScreen(
         return
     }
 
-    // Estado del formulario — se reinicia si cambia la cancha (key = cancha)
+    // Estado del formulario básico
     var nombre      by remember(cancha.id) { mutableStateOf(cancha.nombre) }
     var ubicacion   by remember(cancha.id) { mutableStateOf(cancha.ubicacion) }
     var descripcion by remember(cancha.id) { mutableStateOf(cancha.descripcion) }
@@ -59,10 +63,17 @@ fun AdminCanchaScreen(
     var telefono    by remember(cancha.id) { mutableStateOf(cancha.telefono) }
     var disponible  by remember(cancha.id) { mutableStateOf(cancha.disponible) }
 
+    // Estado del formulario de horarios
     var mostrarFormHorario by remember { mutableStateOf(false) }
     var horarioDia         by remember { mutableStateOf(DIAS[0]) }
-    var horarioApertura    by remember { mutableStateOf("") }
-    var horarioCierre      by remember { mutableStateOf("") }
+    var horarioApertura    by remember { mutableStateOf("08:00") }
+    var horarioCierre      by remember { mutableStateOf("23:00") }
+
+    // Modo edición de horario (guarda el día original que se está modificando)
+    var diaEnEdicion       by remember { mutableStateOf<String?>(null) }
+
+    var mostrarRelojApertura by remember { mutableStateOf(false) }
+    var mostrarRelojCierre   by remember { mutableStateOf(false) }
     var errorHorario       by remember { mutableStateOf<String?>(null) }
 
     var confirmarEliminar  by remember { mutableStateOf(false) }
@@ -86,7 +97,6 @@ fun AdminCanchaScreen(
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text("Administrar cancha", color = ColorTexto, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                // cancha.nombre se actualiza reactivamente al guardar
                 Text(cancha.nombre, color = ColorSubtexto, fontSize = 12.sp)
             }
         }
@@ -147,7 +157,6 @@ fun AdminCanchaScreen(
                         precio.toDoubleOrNull() == null -> errorGuardar = "El precio debe ser un número"
                         else -> {
                             errorGuardar = null
-                            // Llama al ViewModel directamente — la UI reacciona sola
                             canchaViewModel.actualizarCancha(
                                 canchaId, nombre.trim(), ubicacion.trim(),
                                 descripcion.trim(), precio.trim(), telefono.trim(), disponible
@@ -175,7 +184,6 @@ fun AdminCanchaScreen(
             modifier            = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // cancha.horarios se recompone solo al agregar/eliminar
             if (cancha.horarios.isEmpty()) {
                 Text(
                     "No hay franjas configuradas.\nHorario general: ${cancha.horarioApertura}–${cancha.horarioCierre}.",
@@ -187,6 +195,16 @@ fun AdminCanchaScreen(
                         horario    = horario,
                         onEliminar = {
                             canchaViewModel.eliminarHorario(canchaId, horario)
+                            versionHorarios++ // ← fuerza actualización visual inmediata
+                        },
+                        onClickFranja = {
+                            // Modo edición rápido al tocar la tarjeta de horario
+                            horarioDia = horario.dia
+                            horarioApertura = horario.horaApertura
+                            horarioCierre = horario.horaCierre
+                            diaEnEdicion = horario.dia
+                            mostrarFormHorario = true
+                            errorHorario = null
                         }
                     )
                 }
@@ -202,18 +220,45 @@ fun AdminCanchaScreen(
                         .padding(14.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("Nueva franja horaria", color = ColorVerde, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = if (diaEnEdicion != null) "Modificar franja horaria" else "Nueva franja horaria",
+                        color = ColorVerde,
+                        fontWeight = FontWeight.SemiBold
+                    )
 
                     SelectorDia(seleccionado = horarioDia, onSeleccionar = { horarioDia = it })
 
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Column(Modifier.weight(1f)) {
-                            CampoLabel("APERTURA")
-                            CampoTexto("HH:MM", horarioApertura, { horarioApertura = it })
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { mostrarRelojApertura = true }
+                                .border(1.dp, ColorBorde, RoundedCornerShape(8.dp)),
+                            colors = CardDefaults.cardColors(containerColor = ColorFondo)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(10.dp).fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                CampoLabel("APERTURA")
+                                Text(horarioApertura, color = ColorTexto, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
-                        Column(Modifier.weight(1f)) {
-                            CampoLabel("CIERRE")
-                            CampoTexto("HH:MM", horarioCierre, { horarioCierre = it })
+
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { mostrarRelojCierre = true }
+                                .border(1.dp, ColorBorde, RoundedCornerShape(8.dp)),
+                            colors = CardDefaults.cardColors(containerColor = ColorFondo)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(10.dp).fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                CampoLabel("CIERRE")
+                                Text(horarioCierre, color = ColorTexto, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
 
@@ -221,7 +266,11 @@ fun AdminCanchaScreen(
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(
-                            onClick  = { mostrarFormHorario = false; errorHorario = null },
+                            onClick  = {
+                                mostrarFormHorario = false
+                                diaEnEdicion = null
+                                errorHorario = null
+                            },
                             modifier = Modifier.weight(1f),
                             shape    = RoundedCornerShape(8.dp),
                             colors   = ButtonDefaults.outlinedButtonColors(contentColor = ColorSubtexto)
@@ -229,30 +278,60 @@ fun AdminCanchaScreen(
 
                         Button(
                             onClick = {
+                                // Verifica duplicado exceptuando el día que estamos editando en este momento
+                                val yaExisteDia = cancha.horarios.any {
+                                    it.dia.lowercase() == horarioDia.lowercase() && it.dia.lowercase() != diaEnEdicion?.lowercase()
+                                }
+
                                 when {
-                                    horarioApertura.isBlank() -> errorHorario = "Ingresá la apertura"
-                                    horarioCierre.isBlank()   -> errorHorario = "Ingresá el cierre"
+                                    yaExisteDia -> {
+                                        errorHorario = "Ya existe un horario para el $horarioDia."
+                                    }
+                                    horarioApertura.isBlank() || horarioCierre.isBlank() -> {
+                                        errorHorario = "Las horas no pueden estar vacías"
+                                    }
                                     else -> {
+                                        // Si estábamos editando, removemos la versión vieja del día modificado
+                                        diaEnEdicion?.let { diaViejo ->
+                                            val horarioViejo = cancha.horarios.find { it.dia.lowercase() == diaViejo.lowercase() }
+                                            if (horarioViejo != null) {
+                                                canchaViewModel.eliminarHorario(canchaId, horarioViejo)
+                                            }
+                                        }
+
+                                        // Insertamos el nuevo horario modificado/creado
                                         canchaViewModel.agregarHorario(
                                             canchaId,
                                             HorarioDisponible(horarioDia, horarioApertura.trim(), horarioCierre.trim())
                                         )
-                                        horarioApertura    = ""
-                                        horarioCierre      = ""
+
+                                        // Limpieza de estados globales del formulario
+                                        horarioApertura    = "08:00"
+                                        horarioCierre      = "23:00"
+                                        diaEnEdicion       = null
                                         errorHorario       = null
                                         mostrarFormHorario = false
+                                        versionHorarios++ // ← Gatillo manual de renderizado reactivo
                                     }
                                 }
                             },
                             modifier = Modifier.weight(1f),
                             shape    = RoundedCornerShape(8.dp),
                             colors   = ButtonDefaults.buttonColors(containerColor = ColorVerde)
-                        ) { Text("Agregar", color = Color.Black) }
+                        ) {
+                            Text(if (diaEnEdicion != null) "Actualizar" else "Agregar", color = Color.Black)
+                        }
                     }
                 }
             } else {
                 OutlinedButton(
-                    onClick  = { mostrarFormHorario = true },
+                    onClick  = {
+                        horarioDia = DIAS[0]
+                        horarioApertura = "08:00"
+                        horarioCierre = "23:00"
+                        diaEnEdicion = null
+                        mostrarFormHorario = true
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     shape    = RoundedCornerShape(10.dp),
                     colors   = ButtonDefaults.outlinedButtonColors(contentColor = ColorVerde),
@@ -261,13 +340,40 @@ fun AdminCanchaScreen(
                     )
                 ) {
                     Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
+                    Spacer(Modifier.width(6.6.dp))
                     Text("Agregar franja horaria")
                 }
             }
         }
 
         Spacer(Modifier.height(24.dp))
+
+        // ════════════════════════════════════════════════════════════════
+        // DIÁLOGOS DE SELECCIÓN DE HORA
+        // ════════════════════════════════════════════════════════════════
+        if (mostrarRelojApertura) {
+            RelojEstableDialog(
+                horaInicial = horarioApertura,
+                titulo = "Hora de Apertura",
+                onDismiss = { mostrarRelojApertura = false },
+                onHoraSeleccionada = { nuevaHora ->
+                    horarioApertura = nuevaHora
+                    mostrarRelojApertura = false
+                }
+            )
+        }
+
+        if (mostrarRelojCierre) {
+            RelojEstableDialog(
+                horaInicial = horarioCierre,
+                titulo = "Hora de Cierre",
+                onDismiss = { mostrarRelojCierre = false },
+                onHoraSeleccionada = { nuevaHora ->
+                    horarioCierre = nuevaHora
+                    mostrarRelojCierre = false
+                }
+            )
+        }
 
         // ════════════════════════════════════════════════════════════════
         // SECCIÓN 3 — Zona de peligro
@@ -308,7 +414,7 @@ fun AdminCanchaScreen(
                 TextButton(onClick = {
                     confirmarEliminar = false
                     canchaViewModel.eliminarCancha(canchaId)
-                    onEliminarYVolver()             // ← navega solo después de eliminar
+                    onEliminarYVolver()
                 }) {
                     Text("Eliminar", color = ColorRojo, fontWeight = FontWeight.Bold)
                 }
@@ -320,6 +426,79 @@ fun AdminCanchaScreen(
             }
         )
     }
+}
+
+// ── DIÁLOGO ESTABLE DE ENTRADA DE TEXTO PARA HORAS ──
+@Composable
+private fun RelojEstableDialog(
+    horaInicial: String,
+    titulo: String,
+    onDismiss: () -> Unit,
+    onHoraSeleccionada: (String) -> Unit
+) {
+    val partes = horaInicial.split(":")
+    var horas by remember { mutableStateOf(partes.getOrNull(0) ?: "08") }
+    var minutos by remember { mutableStateOf(partes.getOrNull(1) ?: "00") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = ColorTarjeta,
+        shape = RoundedCornerShape(16.dp),
+        title = { Text(titulo, color = ColorVerde, fontSize = 16.sp, fontWeight = FontWeight.Bold) },
+        text = {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = horas,
+                    onValueChange = { if (it.length <= 2) horas = it.filter { c -> c.isDigit() } },
+                    modifier = Modifier.width(64.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = ColorFondo,
+                        unfocusedContainerColor = ColorFondo,
+                        focusedTextColor = ColorTexto,
+                        unfocusedTextColor = ColorTexto,
+                        focusedBorderColor = ColorVerde,
+                        unfocusedBorderColor = ColorBorde
+                    )
+                )
+                Text(" : ", color = ColorTexto, fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp))
+                OutlinedTextField(
+                    value = minutos,
+                    onValueChange = { if (it.length <= 2) minutos = it.filter { c -> c.isDigit() } },
+                    modifier = Modifier.width(64.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = ColorFondo,
+                        unfocusedContainerColor = ColorFondo,
+                        focusedTextColor = ColorTexto,
+                        unfocusedTextColor = ColorTexto,
+                        focusedBorderColor = ColorVerde,
+                        unfocusedBorderColor = ColorBorde
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val hInt = horas.toIntOrNull() ?: 0
+                val mInt = minutos.toIntOrNull() ?: 0
+                val hValida = hInt.coerceIn(0, 23)
+                val mValida = mInt.coerceIn(0, 59)
+                onHoraSeleccionada(String.format(Locale.US, "%02d:%02d", hValida, mValida))
+            }) {
+                Text("ACEPTAR", color = ColorVerde, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("CANCELAR", color = ColorTexto)
+            }
+        }
+    )
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -397,13 +576,18 @@ private fun SelectorDia(seleccionado: String, onSeleccionar: (String) -> Unit) {
 }
 
 @Composable
-private fun FilaHorario(horario: HorarioDisponible, onEliminar: () -> Unit) {
+private fun FilaHorario(
+    horario: HorarioDisponible,
+    onEliminar: () -> Unit,
+    onClickFranja: () -> Unit
+) {
     Row(
         modifier          = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(ColorTarjeta)
             .border(1.dp, ColorBorde, RoundedCornerShape(8.dp))
+            .clickable { onClickFranja() } // ← Hace que toda la franja sea editable al hacer tap
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

@@ -205,16 +205,17 @@ fun AppNavigation() {
             // ➕ CREAR CANCHA
             composable(Screen.CrearCancha.route) {
                 CrearCanchaScreen(
-                    onCrearCancha = { nombre, ubicacion, descripcion, precio, telefono, apertura, cierre ->
+                    onCrearCancha = { nombre, ubicacion, descripcion, precio, telefono, apertura, cierre, horariosDetallados ->
                         canchaViewModel.crearCancha(
-                            nombre          = nombre,
-                            ubicacion       = ubicacion,
-                            descripcion     = descripcion,
-                            precio          = precio,
-                            telefono        = telefono,
-                            horarioApertura = apertura,
-                            horarioCierre   = cierre,
-                            propietario     = perfilViewModel.email
+                            nombre             = nombre,
+                            ubicacion          = ubicacion,
+                            descripcion        = descripcion,
+                            precio             = precio,
+                            telefono           = telefono,
+                            horarioApertura    = apertura,
+                            horarioCierre      = cierre,
+                            horariosDetallados = horariosDetallados, // <-- Pasamos la lista detallada por día al ViewModel
+                            propietario        = perfilViewModel.email
                         )
                         navController.popBackStack()
                     },

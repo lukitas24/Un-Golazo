@@ -24,19 +24,20 @@ import com.example.futbolnomade.domain.model.Cancha
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
-// PALETA DE COLORES OFICIAL DE FÚTBOL NÓMADE
-private val ColorFondo   = Color(0xFF1A1A1A)
-private val ColorCampo   = Color(0xFF2A2A2A)
-private val ColorBorde   = Color(0xFF2E2E2E)
-private val ColorVerde   = Color(0xFF8BC34A)
-private val ColorTexto   = Color(0xFFEEEEEE)
-private val ColorSub     = Color(0xFF999999)
+private val ColorFondo = Color(0xFF1A1A1A)
+private val ColorCampo = Color(0xFF2A2A2A)
+private val ColorBorde = Color(0xFF2E2E2E)
+private val ColorVerde = Color(0xFF8BC34A)
+private val ColorTexto = Color(0xFFEEEEEE)
+private val ColorSub = Color(0xFF999999)
 
 @Composable
 fun DetalleCanchaScreen(
     cancha: Cancha?,
-    // Lista de strings con los horarios ya reservados hoy, ej: listOf("18:00", "21:00")
     turnosReservados: List<String> = emptyList(),
     onReservarTurno: (canchaId: Int, hora: String) -> Unit,
     onVolver: () -> Unit
@@ -50,7 +51,7 @@ fun DetalleCanchaScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("No se encontró la cancha", color = ColorTexto, style = MaterialTheme.typography.titleLarge)
+            Text("No se encontró la cancha", color = ColorTexto)
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = onVolver,
@@ -63,14 +64,13 @@ fun DetalleCanchaScreen(
         return
     }
 
-    // --- PARSEO INTELIGENTE DE COORDENADAS ---
     val coordenadasCancha = remember(cancha.ubicacion) {
         try {
             val partes = cancha.ubicacion.split(",")
             if (partes.size == 2) {
                 LatLng(partes[0].trim().toDouble(), partes[1].trim().toDouble())
             } else {
-                LatLng(-42.7692, -65.0385) // Fallback Puerto Madryn
+                LatLng(-42.7692, -65.0385)
             }
         } catch (e: Exception) {
             LatLng(-42.7692, -65.0385)
@@ -81,38 +81,75 @@ fun DetalleCanchaScreen(
         position = CameraPosition.fromLatLngZoom(coordenadasCancha, 15f)
     }
 
-    // --- GENERACIÓN DINÁMICA DE INTERVALOS HORARIOS (De 1 en 1 hora) ---
-    val listadoTurnosDía = remember(cancha.horarioApertura, cancha.horarioCierre) {
+    var diasAdelante by remember { mutableStateOf(0) }
+    var turnoSeleccionado by remember { mutableStateOf<String?>(null) }
+
+    val fechaSeleccionada = remember(diasAdelante) {
+        Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_YEAR, diasAdelante)
+        }
+    }
+
+    val ahora = Calendar.getInstance()
+    val esHoy = diasAdelante == 0
+
+    val diaSeleccionado = remember(diasAdelante) {
+        SimpleDateFormat("EEEE", Locale("es", "ES")).format(fechaSeleccionada.time)
+            .replaceFirstChar {
+                if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+            }
+    }
+
+    val fechaTexto = remember(diasAdelante) {
+        SimpleDateFormat("dd/MM", Locale("es", "ES")).format(fechaSeleccionada.time)
+    }
+
+    val tituloDia = "$diaSeleccionado $fechaTexto"
+
+    val listadoTurnosDia = remember(
+        cancha.horarios,
+        cancha.horarioApertura,
+        cancha.horarioCierre,
+        diasAdelante
+    ) {
         val turnos = mutableListOf<String>()
+
         try {
-            val aperturaItem = cancha.horarioApertura.split(":")
-            val cierreItem = cancha.horarioCierre.split(":")
+            val horarioEspecifico = cancha.horarios.find {
+                it.dia.lowercase() == diaSeleccionado.lowercase()
+            }
+
+            if (horarioEspecifico == null) {
+                return@remember emptyList<String>()
+            }
+
+            val aperturaString = horarioEspecifico.horaApertura
+            val cierreString = horarioEspecifico.horaCierre
+
+            val aperturaItem = aperturaString.split(":")
+            val cierreItem = cierreString.split(":")
 
             var horaActual = aperturaItem[0].toInt()
             val horaFin = cierreItem[0].toInt()
 
-            // Manejo por si cierra pasada la medianoche (ej: abre 08, cierra 02)
-            val horaLimite = if (horaFin < horaActual) horaFin + 24 else horaFin
+            val horaLimite = if (horaFin <= horaActual) horaFin + 24 else horaFin
 
             while (horaActual < horaLimite) {
                 val horaNormalizada = horaActual % 24
-                val stringHora = String.format(java.util.Locale.US, "%02d:00", horaNormalizada)
+                val stringHora = String.format(Locale.US, "%02d:00", horaNormalizada)
                 turnos.add(stringHora)
                 horaActual++
             }
         } catch (e: Exception) {
-            // Fallback genérico en caso de error de formato en el modelo de datos
-            for (h in 17..23) turnos.add("$h:00")
+            emptyList<String>()
         }
+
         turnos
     }
-
-    var turnoSeleccionado by remember { mutableStateOf<String?>(null) }
 
     val scrollState = rememberScrollState()
     var scrollHabilitado by remember { mutableStateOf(true) }
 
-    // Congela el scroll principal cuando se arrastra el mapa
     LaunchedEffect(cameraPositionState.isMoving) {
         scrollHabilitado = !cameraPositionState.isMoving
     }
@@ -123,7 +160,6 @@ fun DetalleCanchaScreen(
             .background(ColorFondo)
             .verticalScroll(scrollState, enabled = scrollHabilitado)
     ) {
-        // ── TopBar ─────────────────────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -134,14 +170,19 @@ fun DetalleCanchaScreen(
             IconButton(onClick = onVolver) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = ColorTexto)
             }
-            Text(cancha.nombre, color = ColorTexto, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+
+            Text(
+                cancha.nombre,
+                color = ColorTexto,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
 
         Column(
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // PROPIETARIO & CALIFICACIÓN
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -151,6 +192,7 @@ fun DetalleCanchaScreen(
                     color = ColorSub,
                     fontSize = 14.sp
                 )
+
                 Text(
                     text = "⭐ ${cancha.calificacion}",
                     color = ColorVerde,
@@ -159,7 +201,6 @@ fun DetalleCanchaScreen(
                 )
             }
 
-            // FICHA RESUMEN DE DATOS
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -168,25 +209,53 @@ fun DetalleCanchaScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Text("💵 Precio por Hora:", color = ColorSub, fontSize = 14.sp)
-                    Text("\$${cancha.precio}", color = ColorTexto, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(
+                        "\$${cancha.precio}",
+                        color = ColorTexto,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
                 }
+
                 HorizontalDivider(color = ColorBorde, thickness = 1.dp)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Text("📞 Teléfono:", color = ColorSub, fontSize = 14.sp)
                     Text(cancha.telefono, color = ColorTexto, fontSize = 14.sp)
                 }
+
                 HorizontalDivider(color = ColorBorde, thickness = 1.dp)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Text("🕒 Horario General:", color = ColorSub, fontSize = 14.sp)
-                    Text("${cancha.horarioApertura} a ${cancha.horarioCierre} hs", color = ColorVerde, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Text(
+                        "${cancha.horarioApertura} a ${cancha.horarioCierre} hs",
+                        color = ColorVerde,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp
+                    )
                 }
             }
 
-            // DESCRIPCIÓN
             if (cancha.descripcion.isNotBlank()) {
-                Text("Sobre el complejo", color = ColorVerde, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    "Sobre el complejo",
+                    color = ColorVerde,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -198,8 +267,13 @@ fun DetalleCanchaScreen(
                 }
             }
 
-            // SECCIÓN: MAPA
-            Text("Ubicación exacta", color = ColorVerde, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(
+                "Ubicación exacta",
+                color = ColorVerde,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -224,63 +298,151 @@ fun DetalleCanchaScreen(
                 }
             }
 
-            // SECCIÓN: HORARIOS Y RESERVAS
-            Text("Selecciona un horario para hoy", color = ColorVerde, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(
+                "Selecciona un horario",
+                color = ColorVerde,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
 
-            // Grid de turnos en altura controlada para no chocar con el scroll global
-            Box(modifier = Modifier.heightIn(max = 280.dp)) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(ColorCampo, RoundedCornerShape(10.dp))
+                    .border(1.dp, ColorBorde, RoundedCornerShape(10.dp))
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        if (diasAdelante > 0) {
+                            diasAdelante--
+                            turnoSeleccionado = null
+                        }
+                    },
+                    enabled = diasAdelante > 0,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorTexto)
                 ) {
-                    items(listadoTurnosDía) { hora ->
-                        val yaReservado = turnosReservados.contains(hora)
-                        val esElSeleccionado = turnoSeleccionado == hora
+                    Text("←")
+                }
 
-                        // Estética condicional para los estados del botón
-                        val colorFondoCaja = when {
-                            yaReservado -> ColorCampo.copy(alpha = 0.4f) // Más oscuro / apagado
-                            esElSeleccionado -> ColorVerde
-                            else -> ColorCampo
-                        }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = if (esHoy) "Hoy $fechaTexto" else tituloDia,
+                        color = ColorTexto,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
 
-                        val colorTextoCaja = when {
-                            yaReservado -> ColorSub.copy(alpha = 0.4f)
-                            esElSeleccionado -> Color.Black
-                            else -> ColorTexto
-                        }
+                    if (!esHoy) {
+                        Text(
+                            text = "Volver al día actual",
+                            color = ColorVerde,
+                            fontSize = 11.sp,
+                            modifier = Modifier.clickable {
+                                diasAdelante = 0
+                                turnoSeleccionado = null
+                            }
+                        )
+                    }
+                }
 
-                        val colorBordeCaja = when {
-                            esElSeleccionado -> ColorVerde
-                            yaReservado -> ColorBorde.copy(alpha = 0.3f)
-                            else -> ColorBorde
-                        }
+                OutlinedButton(
+                    onClick = {
+                        diasAdelante++
+                        turnoSeleccionado = null
+                    },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorVerde)
+                ) {
+                    Text("→")
+                }
+            }
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(colorFondoCaja, shape = RoundedCornerShape(8.dp))
-                                .border(1.dp, colorBordeCaja, RoundedCornerShape(8.dp))
-                                .clickable(enabled = !yaReservado) {
-                                    turnoSeleccionado = if (esElSeleccionado) null else hora
+            Box(modifier = Modifier.heightIn(max = 280.dp)) {
+                if (listadoTurnosDia.isEmpty()) {
+                    Text(
+                        text = "El complejo está cerrado este día.",
+                        color = ColorSub,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(listadoTurnosDia) { hora ->
+                            val partesHora = hora.split(":")
+                            val horaTurno = partesHora.getOrNull(0)?.toIntOrNull() ?: 0
+                            val minutoTurno = partesHora.getOrNull(1)?.toIntOrNull() ?: 0
+
+                            val turnoYaPaso = esHoy && (
+                                    horaTurno < ahora.get(Calendar.HOUR_OF_DAY) ||
+                                            (
+                                                    horaTurno == ahora.get(Calendar.HOUR_OF_DAY) &&
+                                                            minutoTurno <= ahora.get(Calendar.MINUTE)
+                                                    )
+                                    )
+
+                            val yaReservado = turnosReservados.contains(hora)
+                            val deshabilitado = yaReservado || turnoYaPaso
+                            val esElSeleccionado = turnoSeleccionado == hora
+
+                            val colorFondoCaja = when {
+                                deshabilitado -> ColorCampo.copy(alpha = 0.4f)
+                                esElSeleccionado -> ColorVerde
+                                else -> ColorCampo
+                            }
+
+                            val colorTextoCaja = when {
+                                deshabilitado -> ColorSub.copy(alpha = 0.4f)
+                                esElSeleccionado -> Color.Black
+                                else -> ColorTexto
+                            }
+
+                            val colorBordeCaja = when {
+                                esElSeleccionado -> ColorVerde
+                                deshabilitado -> ColorBorde.copy(alpha = 0.3f)
+                                else -> ColorBorde
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(colorFondoCaja, shape = RoundedCornerShape(8.dp))
+                                    .border(1.dp, colorBordeCaja, RoundedCornerShape(8.dp))
+                                    .clickable(enabled = !deshabilitado) {
+                                        turnoSeleccionado =
+                                            if (esElSeleccionado) null else hora
+                                    }
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = hora,
+                                        color = colorTextoCaja,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+
+                                    Text(
+                                        text = when {
+                                            yaReservado -> "Ocupado"
+                                            turnoYaPaso -> "Pasó"
+                                            else -> "Disponible"
+                                        },
+                                        color = if (esElSeleccionado) {
+                                            Color.Black.copy(alpha = 0.7f)
+                                        } else {
+                                            ColorSub.copy(alpha = 0.8f)
+                                        },
+                                        fontSize = 10.sp
+                                    )
                                 }
-                                .padding(vertical = 12.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = hora,
-                                    color = colorTextoCaja,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = if (yaReservado) "Ocupado" else "Disponible",
-                                    color = if (esElSeleccionado) Color.Black.copy(alpha = 0.7f) else ColorSub.copy(alpha = 0.8f),
-                                    fontSize = 10.sp
-                                )
                             }
                         }
                     }
@@ -289,7 +451,6 @@ fun DetalleCanchaScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // BOTÓN DE ACCIÓN PRINCIPAL
             Button(
                 onClick = {
                     turnoSeleccionado?.let { hora ->
@@ -307,7 +468,11 @@ fun DetalleCanchaScreen(
                 )
             ) {
                 Text(
-                    text = if (turnoSeleccionado != null) "Reservar a las ${turnoSeleccionado} hs" else "Selecciona un turno",
+                    text = if (turnoSeleccionado != null) {
+                        "Reservar $tituloDia a las $turnoSeleccionado hs"
+                    } else {
+                        "Selecciona un turno"
+                    },
                     color = if (turnoSeleccionado != null) Color.Black else ColorSub,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp
