@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.example.futbolnomade.data.repository.PartidoRepositoryImpl
+import com.example.futbolnomade.domain.model.EstadoPartido
 import com.example.futbolnomade.domain.model.Partido
 import com.example.futbolnomade.presentation.state.PartidoUiState
 
@@ -31,6 +32,19 @@ class PartidoViewModel : ViewModel() {
         return repository.obtenerPartido(id)
     }
 
+    fun misPartidos(emailUsuario: String): List<Partido> {
+        return uiState.partidos.filter { partido ->
+            partido.creador == emailUsuario
+        }
+    }
+
+    fun partidosVisibles(): List<Partido> {
+        return uiState.partidos.filter { partido ->
+            partido.estado == EstadoPartido.PUBLICADO ||
+                    partido.estado == EstadoPartido.RESERVA_APROBADA
+        }
+    }
+
     fun crearPartido(
         titulo: String,
         horario: String,
@@ -38,8 +52,18 @@ class PartidoViewModel : ViewModel() {
         ubicacion: String,
         dificultad: String,
         participantes: Int,
-        descripcion: String
+        descripcion: String,
+        creador: String,
+        canchaId: Int? = null,
+        nombreCancha: String? = null,
+        latitud: Double? = null,
+        longitud: Double? = null
     ) {
+        val estadoInicial = if (canchaId == null) {
+            EstadoPartido.PUBLICADO
+        } else {
+            EstadoPartido.PENDIENTE_RESERVA
+        }
 
         val nuevoPartido = Partido(
             id = System.currentTimeMillis().toInt(),
@@ -50,15 +74,28 @@ class PartidoViewModel : ViewModel() {
             dificultad = dificultad,
             participantesActuales = 1,
             participantesMaximos = participantes,
-            creador = "admin",
+            creador = creador,
             calificacionCreador = 5.0,
-            descripcion = descripcion
+            descripcion = descripcion,
+            usuariosAnotados = listOf(creador),
+            canchaId = canchaId,
+            nombreCancha = nombreCancha,
+            latitud = latitud,
+            longitud = longitud,
+            estado = estadoInicial
         )
 
         repository.crearPartido(nuevoPartido)
 
         cargarPartidos()
     }
+
+    fun eliminarPartido(id: Int) {
+        repository.eliminarPartido(id)
+
+        cargarPartidos()
+    }
+
     fun anotarseAPartido(
         partidoId: Int,
         usuario: String
@@ -72,6 +109,7 @@ class PartidoViewModel : ViewModel() {
 
         return resultado
     }
+
     fun cancelarInscripcion(
         partidoId: Int,
         usuario: String
@@ -85,4 +123,6 @@ class PartidoViewModel : ViewModel() {
 
         return resultado
     }
+
+
 }

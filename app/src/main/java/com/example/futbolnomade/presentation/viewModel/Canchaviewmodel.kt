@@ -12,24 +12,22 @@ import com.example.futbolnomade.presentation.state.CanchaUiState
 import kotlinx.coroutines.launch
 
 class CanchaViewModel : ViewModel() {
-    // Instanciamos el repositorio local en memoria
+
     private val canchaRepository = CanchaRepositoryImpl()
 
     var uiState by mutableStateOf(CanchaUiState())
         private set
 
     init {
-        actualizarUiState() // Cargamos el estado inicial con lo que tiene el repositorio
+        actualizarUiState()
     }
 
-    // Método auxiliar para sincronizar la lista de la "Base de datos" con la UI
     private fun actualizarUiState() {
         uiState = uiState.copy(
             canchas = canchaRepository.obtenerCanchas()
         )
     }
 
-    // ── Crear ──────────────────────────────────────────────────────────────
     fun crearCancha(
         nombre: String,
         ubicacion: String,
@@ -39,12 +37,14 @@ class CanchaViewModel : ViewModel() {
         horarioApertura: String,
         horarioCierre: String,
         horariosDetallados: List<HorarioDisponible>,
-        propietario: String
+        propietario: String,
+        latitud: Double,
+        longitud: Double
     ) {
         viewModelScope.launch {
             try {
                 val nuevaCancha = Cancha(
-                    id = 0, // El repositorio se encargará de autoincrementar este ID
+                    id = 0,
                     nombre = nombre,
                     ubicacion = ubicacion,
                     descripcion = descripcion,
@@ -55,28 +55,26 @@ class CanchaViewModel : ViewModel() {
                     calificacion = 5.0,
                     propietario = propietario,
                     disponible = true,
+                    latitud = latitud,
+                    longitud = longitud,
                     horarios = horariosDetallados
                 )
 
-                // CORRECCIÓN: Llamamos al método correcto del repositorio
                 canchaRepository.crearCancha(nuevaCancha)
 
-                // Refrescamos la UI con la nueva lista modificada
                 actualizarUiState()
 
             } catch (e: Exception) {
-                // Manejo de errores opcional
+                e.printStackTrace()
             }
         }
     }
 
-    // ── Eliminar ───────────────────────────────────────────────────────────
     fun eliminarCancha(canchaId: Int) {
         canchaRepository.eliminarCancha(canchaId)
         actualizarUiState()
     }
 
-    // ── Editar datos básicos ───────────────────────────────────────────────
     fun actualizarCancha(
         canchaId: Int,
         nombre: String,
@@ -84,7 +82,9 @@ class CanchaViewModel : ViewModel() {
         descripcion: String,
         precio: String,
         telefono: String,
-        disponible: Boolean
+        disponible: Boolean,
+        latitud: Double? = null,
+        longitud: Double? = null
     ) {
         val canchaActual = canchaRepository.obtenerCancha(canchaId) ?: return
 
@@ -94,27 +94,36 @@ class CanchaViewModel : ViewModel() {
             descripcion = descripcion,
             precio = precio.toDoubleOrNull() ?: canchaActual.precio,
             telefono = telefono,
-            disponible = disponible
+            disponible = disponible,
+            latitud = latitud ?: canchaActual.latitud,
+            longitud = longitud ?: canchaActual.longitud
         )
 
         canchaRepository.actualizarCancha(canchaActualizada)
         actualizarUiState()
     }
 
-    // ── Horarios por día ───────────────────────────────────────────────────
-    fun agregarHorario(canchaId: Int, horario: HorarioDisponible) {
+    fun agregarHorario(
+        canchaId: Int,
+        horario: HorarioDisponible
+    ) {
         canchaRepository.agregarHorario(canchaId, horario)
         actualizarUiState()
     }
 
-    fun eliminarHorario(canchaId: Int, horario: HorarioDisponible) {
+    fun eliminarHorario(
+        canchaId: Int,
+        horario: HorarioDisponible
+    ) {
         canchaRepository.eliminarHorario(canchaId, horario)
         actualizarUiState()
     }
-    // ── Filtros ────────────────────────────────────────────────────────────
-    fun misCanchas(emailPropietario: String): List<Cancha> =
-        canchaRepository.obtenerCanchasPorPropietario(emailPropietario)
 
-    fun getCanchaById(id: Int): Cancha? =
-        canchaRepository.obtenerCancha(id)
+    fun misCanchas(emailPropietario: String): List<Cancha> {
+        return canchaRepository.obtenerCanchasPorPropietario(emailPropietario)
+    }
+
+    fun getCanchaById(id: Int): Cancha? {
+        return canchaRepository.obtenerCancha(id)
+    }
 }

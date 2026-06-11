@@ -34,6 +34,7 @@ import com.example.futbolnomade.presentation.viewModel.HomeViewModel
 import com.example.futbolnomade.presentation.viewModel.PartidoViewModel
 import com.example.futbolnomade.presentation.viewModel.PerfilViewModel
 import com.example.futbolnomade.presentation.ui.CercaDeMiScreen
+import com.example.futbolnomade.presentation.ui.partidos.MisPartidosScreen
 
 private val rutasSinBottomBar = setOf(Screen.Login.route, Screen.Register.route)
 
@@ -109,7 +110,7 @@ fun AppNavigation() {
                     homeViewModel       = homeViewModel,
                     onIrAPartidos       = { navController.navigate(Screen.Partidos.route) },
                     onIrACanchas        = { navController.navigate(Screen.Canchas.route) },
-                    onIrAMisPartidos    = { navController.navigate(Screen.Partidos.route) },
+                    onIrAMisPartidos    = { navController.navigate(Screen.MisPartidos.route) },
                     onIrAMisCanchas     = { navController.navigate(Screen.MisCanchas.route) },
                     onIrAMisReservas    = { navController.navigate(Screen.Partidos.route) },
                     onIrACercaMio       = { navController.navigate(Screen.CercaDeMi.route) },
@@ -153,13 +154,43 @@ fun AppNavigation() {
             }
             composable(Screen.CrearPartido.route) {
                 CrearPartidoScreen(
-                    onCrearPartido = { titulo, horario, fecha, ubicacion, dificultad, participantes, descripcion ->
-                        partidoViewModel.crearPartido(titulo, horario, fecha, ubicacion, dificultad, participantes, descripcion)
+                    canchas = canchaViewModel.uiState.canchas,
+                    onCrearPartido = {
+                            titulo,
+                            horario,
+                            fecha,
+                            ubicacion,
+                            dificultad,
+                            participantes,
+                            descripcion,
+                            canchaId,
+                            nombreCancha,
+                            latitud,
+                            longitud ->
+
+                        partidoViewModel.crearPartido(
+                            titulo = titulo,
+                            horario = horario,
+                            fecha = fecha,
+                            ubicacion = ubicacion,
+                            dificultad = dificultad,
+                            participantes = participantes,
+                            descripcion = descripcion,
+                            creador = perfilViewModel.email,
+                            canchaId = canchaId,
+                            nombreCancha = nombreCancha,
+                            latitud = latitud,
+                            longitud = longitud
+                        )
+
                         navController.popBackStack()
                     },
-                    onVolver = { navController.popBackStack() }
+                    onVolver = {
+                        navController.popBackStack()
+                    }
                 )
             }
+
             composable(
                 route = Screen.DetallePartido.route,
                 arguments = listOf(navArgument("partidoId") { type = NavType.IntType })
@@ -172,6 +203,22 @@ fun AppNavigation() {
                     onAnotarse            = { id, u -> partidoViewModel.anotarseAPartido(id, u) },
                     onCancelarInscripcion = { id, u -> partidoViewModel.cancelarInscripcion(id, u) },
                     onVolver              = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.MisPartidos.route) {
+                MisPartidosScreen(
+                    emailUsuario = perfilViewModel.email,
+                    partidoViewModel = partidoViewModel,
+                    onCrearPartido = {
+                        navController.navigate(Screen.CrearPartido.route)
+                    },
+                    onAdministrarPartido = { id ->
+                        navController.navigate(Screen.DetallePartido.createRoute(id))
+                    },
+                    onVolver = {
+                        navController.popBackStack()
+                    }
                 )
             }
 
@@ -203,23 +250,40 @@ fun AppNavigation() {
             }
 
             // ➕ CREAR CANCHA
+            // ➕ CREAR CANCHA
             composable(Screen.CrearCancha.route) {
                 CrearCanchaScreen(
-                    onCrearCancha = { nombre, ubicacion, descripcion, precio, telefono, apertura, cierre, horariosDetallados ->
+                    onCrearCancha = {
+                            nombre,
+                            ubicacion,
+                            descripcion,
+                            precio,
+                            telefono,
+                            apertura,
+                            cierre,
+                            horariosDetallados,
+                            latitud,
+                            longitud ->
+
                         canchaViewModel.crearCancha(
-                            nombre             = nombre,
-                            ubicacion          = ubicacion,
-                            descripcion        = descripcion,
-                            precio             = precio,
-                            telefono           = telefono,
-                            horarioApertura    = apertura,
-                            horarioCierre      = cierre,
-                            horariosDetallados = horariosDetallados, // <-- Pasamos la lista detallada por día al ViewModel
-                            propietario        = perfilViewModel.email
+                            nombre = nombre,
+                            ubicacion = ubicacion,
+                            descripcion = descripcion,
+                            precio = precio,
+                            telefono = telefono,
+                            horarioApertura = apertura,
+                            horarioCierre = cierre,
+                            horariosDetallados = horariosDetallados,
+                            propietario = perfilViewModel.email,
+                            latitud = latitud,
+                            longitud = longitud
                         )
+
                         navController.popBackStack()
                     },
-                    onVolver = { navController.popBackStack() }
+                    onVolver = {
+                        navController.popBackStack()
+                    }
                 )
             }
 

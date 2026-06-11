@@ -50,7 +50,9 @@ fun CrearCanchaScreen(
         telefono: String,
         horarioApertura: String,
         horarioCierre: String,
-        horariosDetallados: List<HorarioDisponible>
+        horariosDetallados: List<HorarioDisponible>,
+        latitud: Double,
+        longitud: Double
     ) -> Unit,
     onVolver: () -> Unit
 ) {
@@ -375,10 +377,16 @@ fun CrearCanchaScreen(
                         else -> {
                             error = null
                             onCrearCancha(
-                                nombre.trim(), ubicacion.trim(), descripcion.trim(),
-                                precio.trim(), telefono.trim(),
-                                aperturaFiltro, cierreFiltro,
-                                listadoFinalHorarios
+                                nombre.trim(),
+                                ubicacion.trim(),
+                                descripcion.trim(),
+                                precio.trim(),
+                                telefono.trim(),
+                                aperturaFiltro,
+                                cierreFiltro,
+                                listadoFinalHorarios,
+                                posicionSeleccionada.latitude,
+                                posicionSeleccionada.longitude
                             )
                         }
                     }
