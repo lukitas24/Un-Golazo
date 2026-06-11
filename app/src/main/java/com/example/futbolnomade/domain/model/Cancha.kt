@@ -7,17 +7,17 @@ data class HorarioDisponible(
 )
 
 data class Cancha(
-    val id: Int,
-    val nombre: String,
-    val ubicacion: String,
-    val descripcion: String,
-    val precio: Double,
-    val telefono: String,
-    val horarioApertura: String,
-    val horarioCierre: String,
-    val calificacion: Double,
-    val propietario: String,
-    val disponible: Boolean,
+    val id: String = "",
+    val nombre: String = "",
+    val ubicacion: String = "",
+    val descripcion: String = "",
+    val precio: Double = 0.0,
+    val telefono: String = "",
+    val horarioApertura: String = "",
+    val horarioCierre: String = "",
+    val calificacion: Double = 0.0,
+    val propietario: String = "",
+    val disponible: Boolean = true,
     // Horarios por día (para administración avanzada)
     val horarios: List<HorarioDisponible> = emptyList()
 )

@@ -4,11 +4,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 data class Usuario(
     val nombre: String,
     val email: String,
-    val password: String
+    val uid: String = ""
 )
 
 sealed class AuthResult {
@@ -18,59 +23,63 @@ sealed class AuthResult {
 
 class AuthViewModel : ViewModel() {
 
-    private val usuarios = mutableListOf(
-        Usuario(nombre = "Admin", email = "admin@gmail.com", password = "123456")
-    )
+    private val auth = FirebaseAuth.getInstance()
 
     var usuarioActual by mutableStateOf<Usuario?>(null)
         private set
 
-    fun login(email: String, password: String): AuthResult {
-        val cleanEmail    = email.trim().lowercase()
+    init {
+        val user = auth.currentUser
+        usuarioActual = user?.let {
+            Usuario(
+                nombre = it.displayName ?: "",
+                email = it.email ?: "",
+                uid = it.uid
+            )
+        }
+    }
+
+    fun login(email: String, password: String, onResult: (AuthResult) -> Unit) {
+        val cleanEmail = email.trim().lowercase()
         val cleanPassword = password.trim()
 
-        val encontrado = usuarios.find {
-            it.email.lowercase() == cleanEmail && it.password == cleanPassword
-        }
-
-        return if (encontrado != null) {
-            usuarioActual = encontrado
-            AuthResult.Success
-        } else {
-            AuthResult.Error("Email o contraseña incorrectos")
+        viewModelScope.launch {
+            try {
+                auth.signInWithEmailAndPassword(cleanEmail, cleanPassword).await()
+                val user = auth.currentUser
+                usuarioActual = user?.let {
+                    Usuario(nombre = it.displayName ?: "", email = it.email ?: "", uid = it.uid)
+                }
+                onResult(AuthResult.Success)
+            } catch (e: Exception) {
+                onResult(AuthResult.Error(e.message ?: "Email o contraseña incorrectos"))
+            }
         }
     }
 
-    fun registrar(nombre: String, email: String, password: String): AuthResult {
+    fun registrar(nombre: String, email: String, password: String, onResult: (AuthResult) -> Unit) {
         val cleanEmail = email.trim().lowercase()
 
-        if (usuarios.any { it.email.lowercase() == cleanEmail }) {
-            return AuthResult.Error("Ya existe una cuenta con ese email")
+        viewModelScope.launch {
+            try {
+                val result = auth.createUserWithEmailAndPassword(cleanEmail, password.trim()).await()
+                val user = result.user
+                
+                val profileUpdates = UserProfileChangeRequest.Builder()
+                    .setDisplayName(nombre.trim())
+                    .build()
+                user?.updateProfile(profileUpdates)?.await()
+                
+                usuarioActual = Usuario(nombre = nombre.trim(), email = cleanEmail, uid = user?.uid ?: "")
+                onResult(AuthResult.Success)
+            } catch (e: Exception) {
+                onResult(AuthResult.Error(e.message ?: "Error al registrar"))
+            }
         }
-
-        val nuevo = Usuario(nombre = nombre.trim(), email = cleanEmail, password = password.trim())
-        usuarios.add(nuevo)
-        usuarioActual = nuevo
-        return AuthResult.Success
-    }
-
-    // Actualiza nombre/email/password del usuario actual (desde EditarPerfil)
-    fun actualizarUsuarioActual(nombre: String, email: String, password: String) {
-        val actual = usuarioActual ?: return
-        val index  = usuarios.indexOfFirst { it.email.lowercase() == actual.email.lowercase() }
-        if (index == -1) return
-
-        val nuevaPassword = if (password.isBlank()) actual.password else password.trim()
-        val actualizado   = actual.copy(
-            nombre   = nombre.trim().ifBlank { actual.nombre },
-            email    = email.trim().lowercase().ifBlank { actual.email },
-            password = nuevaPassword
-        )
-        usuarios[index] = actualizado
-        usuarioActual   = actualizado
     }
 
     fun logout() {
+        auth.signOut()
         usuarioActual = null
     }
 }

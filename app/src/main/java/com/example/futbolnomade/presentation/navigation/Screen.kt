@@ -21,7 +21,7 @@ sealed class Screen(val route: String) {
     object CrearPartido : Screen("crear_partido")
 
     object DetallePartido : Screen("detalle_partido/{partidoId}") {
-        fun createRoute(partidoId: Int) = "detalle_partido/$partidoId"
+        fun createRoute(partidoId: String) = "detalle_partido/$partidoId"
     }
 
     object Canchas     : Screen("canchas")
@@ -31,7 +31,7 @@ sealed class Screen(val route: String) {
     object MisCanchas   : Screen("mis_canchas")
 
     object AdminCancha  : Screen("admin_cancha/{canchaId}") {
-        fun createRoute(canchaId: Int) = "admin_cancha/$canchaId"
+        fun createRoute(canchaId: String) = "admin_cancha/$canchaId"
     }
 }
 

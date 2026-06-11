@@ -179,9 +179,11 @@ fun RegisterScreen(
                 if (!validar()) return@OutlinedButton
 
                 // Registrar en el ViewModel compartido
-                when (val result = authViewModel.registrar(nombre.trim(), email.trim(), password.trim())) {
-                    is AuthResult.Success -> onRegistroExitoso(nombre.trim(), email.trim())
-                    is AuthResult.Error   -> registroError = result.mensaje
+                authViewModel.registrar(nombre.trim(), email.trim(), password.trim()) { result ->
+                    when (result) {
+                        is AuthResult.Success -> onRegistroExitoso(nombre.trim(), email.trim())
+                        is AuthResult.Error -> registroError = result.mensaje
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth().height(48.dp),

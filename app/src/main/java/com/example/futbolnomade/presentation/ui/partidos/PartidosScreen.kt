@@ -27,7 +27,7 @@ private val BlancoCard = Color(0xFFF8F8F8)
 fun PartidosScreen(
     uiState: PartidoUiState,
     onCrearPartido: () -> Unit,
-    onVerDetalle: (Int) -> Unit,
+    onVerDetalle: (String) -> Unit,
     onVolver: () -> Unit
 ) {
     var busqueda by remember { mutableStateOf("") }

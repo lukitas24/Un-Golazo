@@ -36,7 +36,7 @@ private val DIAS = listOf("Lunes","Martes","Miércoles","Jueves","Viernes","Sáb
 
 @Composable
 fun AdminCanchaScreen(
-    canchaId: Int,
+    canchaId: String,
     canchaViewModel: CanchaViewModel,       // ← ViewModel completo
     onEliminarYVolver: () -> Unit,
     onVolver: () -> Unit

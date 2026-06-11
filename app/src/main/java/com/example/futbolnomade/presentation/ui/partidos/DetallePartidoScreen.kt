@@ -11,8 +11,8 @@ import com.example.futbolnomade.domain.model.Partido
 fun DetallePartidoScreen(
     partido: Partido?,
     usuarioActual: String,
-    onAnotarse: (Int, String) -> Boolean,
-    onCancelarInscripcion: (Int, String) -> Boolean,
+    onAnotarse: (String, String) -> Unit,
+    onCancelarInscripcion: (String, String) -> Unit,
     onVolver: () -> Unit
 )
 {

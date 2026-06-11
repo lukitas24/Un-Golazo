@@ -2,93 +2,82 @@ package com.example.futbolnomade.data.repository
 
 import com.example.futbolnomade.domain.model.Partido
 import com.example.futbolnomade.domain.repository.PartidoRepository
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
 class PartidoRepositoryImpl : PartidoRepository {
 
-    private val partidos = mutableListOf(
-        Partido(
-            id = 1,
-            titulo = "Picadito",
-            horario = "18:00",
-            fecha = "24/06",
-            ubicacion = "Puerto Madryn, Mitre 423",
-            dificultad = "Avanzado",
-            participantesActuales = 1,
-            participantesMaximos = 10,
-            creador = "Dani Martinez",
-            calificacionCreador = 4.9
-        ),
-        Partido(
-            id = 2,
-            titulo = "La revancha",
-            horario = "21:00",
-            fecha = "20/05",
-            ubicacion = "Puerto Madryn, Muzzio y Luis Maria Campos",
-            dificultad = "Fácil",
-            participantesActuales = 5,
-            participantesMaximos = 10,
-            creador = "Teresa Rodrigo",
-            calificacionCreador = 4.9
-        )
-    )
+    private val db = FirebaseFirestore.getInstance()
+    private val partidosCollection = db.collection("partidos")
 
-    override fun obtenerPartidos(): List<Partido> {
-        return partidos.toList()
-    }
-
-    override fun obtenerPartido(id: Int): Partido? {
-        return partidos.find { it.id == id }
-    }
-
-    override fun crearPartido(partido: Partido) {
-        partidos.add(partido)
-    }
-
-    override fun anotarseAPartido(
-        partidoId: Int,
-        usuario: String
-    ): Boolean {
-        val index = partidos.indexOfFirst { it.id == partidoId }
-
-        if (index == -1) return false
-
-        val partido = partidos[index]
-
-        if (usuario in partido.usuariosAnotados) {
-            return false
+    override suspend fun obtenerPartidos(): List<Partido> {
+        return try {
+            val snapshot = partidosCollection.get().await()
+            snapshot.toObjects(Partido::class.java)
+        } catch (e: Exception) {
+            emptyList()
         }
-
-        if (partido.participantesActuales >= partido.participantesMaximos) {
-            return false
-        }
-
-        partidos[index] = partido.copy(
-            participantesActuales = partido.participantesActuales + 1,
-            usuariosAnotados = partido.usuariosAnotados + usuario
-        )
-
-        return true
     }
 
-    override fun cancelarInscripcion(
-        partidoId: Int,
-        usuario: String
-    ): Boolean {
-        val index = partidos.indexOfFirst { it.id == partidoId }
-
-        if (index == -1) return false
-
-        val partido = partidos[index]
-
-        if (usuario !in partido.usuariosAnotados) {
-            return false
+    override suspend fun obtenerPartido(id: String): Partido? {
+        return try {
+            val document = partidosCollection.document(id).get().await()
+            document.toObject(Partido::class.java)
+        } catch (e: Exception) {
+            null
         }
+    }
 
-        partidos[index] = partido.copy(
-            participantesActuales = partido.participantesActuales - 1,
-            usuariosAnotados = partido.usuariosAnotados - usuario
-        )
+    override suspend fun crearPartido(partido: Partido) {
+        try {
+            val docRef = if (partido.id.isEmpty()) {
+                partidosCollection.document()
+            } else {
+                partidosCollection.document(partido.id)
+            }
+            val partidoConId = partido.copy(id = docRef.id)
+            docRef.set(partidoConId).await()
+        } catch (e: Exception) {
+            // Manejar error
+        }
+    }
 
-        return true
+    override suspend fun anotarseAPartido(partidoId: String, usuario: String): Boolean {
+        return try {
+            val docRef = partidosCollection.document(partidoId)
+            db.runTransaction { transaction ->
+                val snapshot = transaction.get(docRef)
+                val partido = snapshot.toObject(Partido::class.java) ?: return@runTransaction false
+                
+                if (usuario in partido.usuariosAnotados) return@runTransaction false
+                if (partido.participantesActuales >= partido.participantesMaximos) return@runTransaction false
+                
+                val nuevosUsuarios = partido.usuariosAnotados + usuario
+                transaction.update(docRef, "usuariosAnotados", nuevosUsuarios)
+                transaction.update(docRef, "participantesActuales", partido.participantesActuales + 1)
+                true
+            }.await()
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    override suspend fun cancelarInscripcion(partidoId: String, usuario: String): Boolean {
+        return try {
+            val docRef = partidosCollection.document(partidoId)
+            db.runTransaction { transaction ->
+                val snapshot = transaction.get(docRef)
+                val partido = snapshot.toObject(Partido::class.java) ?: return@runTransaction false
+                
+                if (usuario !in partido.usuariosAnotados) return@runTransaction false
+                
+                val nuevosUsuarios = partido.usuariosAnotados - usuario
+                transaction.update(docRef, "usuariosAnotados", nuevosUsuarios)
+                transaction.update(docRef, "participantesActuales", partido.participantesActuales - 1)
+                true
+            }.await()
+        } catch (e: Exception) {
+            false
+        }
     }
 }

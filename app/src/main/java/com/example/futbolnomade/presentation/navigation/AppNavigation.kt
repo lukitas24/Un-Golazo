@@ -145,9 +145,9 @@ fun AppNavigation() {
             }
             composable(
                 route = Screen.DetallePartido.route,
-                arguments = listOf(navArgument("partidoId") { type = NavType.IntType })
+                arguments = listOf(navArgument("partidoId") { type = NavType.StringType })
             ) { backStackEntry ->
-                val partidoId = backStackEntry.arguments?.getInt("partidoId")
+                val partidoId = backStackEntry.arguments?.getString("partidoId")
                 val partido   = partidoViewModel.uiState.partidos.find { it.id == partidoId }
                 DetallePartidoScreen(
                     partido               = partido,
@@ -201,9 +201,9 @@ fun AppNavigation() {
             // ⚙️ ADMINISTRAR UNA CANCHA — pasa el ViewModel completo para reactividad
             composable(
                 route     = Screen.AdminCancha.route,
-                arguments = listOf(navArgument("canchaId") { type = NavType.IntType })
+                arguments = listOf(navArgument("canchaId") { type = NavType.StringType })
             ) { backStackEntry ->
-                val canchaId = backStackEntry.arguments?.getInt("canchaId") ?: return@composable
+                val canchaId = backStackEntry.arguments?.getString("canchaId") ?: return@composable
 
                 AdminCanchaScreen(
                     canchaId         = canchaId,
