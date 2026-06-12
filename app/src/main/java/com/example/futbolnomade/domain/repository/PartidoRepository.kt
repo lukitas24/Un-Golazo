@@ -4,11 +4,11 @@ import com.example.futbolnomade.domain.model.Partido
 
 interface PartidoRepository {
 
-    fun obtenerPartidos(): List<Partido>
+    suspend fun obtenerPartidos(): List<Partido>
 
-    fun obtenerPartido(id: Int): Partido?
+    suspend fun obtenerPartido(id: String): Partido?
 
-    fun crearPartido(partido: Partido)
+    suspend fun crearPartido(partido: Partido)
 
     fun eliminarPartido(id: Int)
 
@@ -17,8 +17,8 @@ interface PartidoRepository {
         usuario: String
     ): Boolean
 
-    fun cancelarInscripcion(
-        partidoId: Int,
+    suspend fun cancelarInscripcion(
+        partidoId: String,
         usuario: String
     ): Boolean
 }

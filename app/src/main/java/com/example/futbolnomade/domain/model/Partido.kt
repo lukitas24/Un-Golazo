@@ -8,16 +8,16 @@ enum class EstadoPartido {
 }
 
 data class Partido(
-    val id: Int,
-    val titulo: String,
-    val horario: String,
-    val fecha: String,
-    val ubicacion: String,
-    val dificultad: String,
-    val participantesActuales: Int,
-    val participantesMaximos: Int,
-    val creador: String,
-    val calificacionCreador: Double,
+    val id: String = "",
+    val titulo: String = "",
+    val horario: String = "",
+    val fecha: String = "",
+    val ubicacion: String = "",
+    val dificultad: String = "",
+    val participantesActuales: Int = 0,
+    val participantesMaximos: Int = 0,
+    val creador: String = "",
+    val calificacionCreador: Double = 0.0,
     val descripcion: String = "",
     val usuariosAnotados: List<String> = emptyList(),
 

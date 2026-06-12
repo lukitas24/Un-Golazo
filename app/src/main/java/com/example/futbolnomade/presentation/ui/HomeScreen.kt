@@ -60,7 +60,7 @@ fun HomeScreen(
     onIrAMisReservas: () -> Unit,
     onIrACercaMio: () -> Unit,
     onBuscarPartido: (String) -> Unit,
-    onVerDetallePartido: (Int) -> Unit,
+    onVerDetallePartido: (String) -> Unit,
     onIrAElementos: () -> Unit = {},
     onIrAAcerca: () -> Unit = {},
     homeViewModel: HomeViewModel = viewModel()

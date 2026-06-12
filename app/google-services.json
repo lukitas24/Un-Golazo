@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "799939563021",
+    "project_id": "futbolnomade-2ae48",
+    "storage_bucket": "futbolnomade-2ae48.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:799939563021:android:50f9f7742891e0488a4f44",
+        "android_client_info": {
+          "package_name": "com.example.futbolnomade"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBV4GLZGhyO3dOdvbA-0LZ4VuEcjrasM7U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -123,13 +123,15 @@ fun LoginScreen(
             onClick = {
                 if (!validarCampos()) return@OutlinedButton
 
-                when (val result = authViewModel.login(email.trim(), password.trim())) {
-                    is AuthResult.Success -> {
-                        // Pasar nombre real del usuario (no el email) al Home
-                        val usuario = authViewModel.usuarioActual
-                        onLoginSuccess(usuario?.nombre ?: email.trim(), email.trim())
+                authViewModel.login(email.trim(), password.trim()) { result ->
+                    when (result) {
+                        is AuthResult.Success -> {
+                            // Pasar nombre real del usuario (no el email) al Home
+                            val usuario = authViewModel.usuarioActual
+                            onLoginSuccess(usuario?.nombre ?: email.trim(), email.trim())
+                        }
+                        is AuthResult.Error -> loginError = result.mensaje
                     }
-                    is AuthResult.Error -> loginError = result.mensaje
                 }
             },
             modifier = Modifier.fillMaxWidth().height(48.dp),

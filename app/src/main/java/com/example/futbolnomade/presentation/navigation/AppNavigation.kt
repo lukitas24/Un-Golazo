@@ -3,6 +3,7 @@ package com.example.futbolnomade.presentation.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -145,6 +146,9 @@ fun AppNavigation() {
 
             // ⚽ PARTIDOS
             composable(Screen.Partidos.route) {
+                LaunchedEffect(Unit) {
+                    partidoViewModel.cargarPartidos()
+                }
                 PartidosScreen(
                     uiState        = partidoViewModel.uiState,
                     onCrearPartido = { navController.navigate(Screen.CrearPartido.route) },
@@ -193,9 +197,9 @@ fun AppNavigation() {
 
             composable(
                 route = Screen.DetallePartido.route,
-                arguments = listOf(navArgument("partidoId") { type = NavType.IntType })
+                arguments = listOf(navArgument("partidoId") { type = NavType.StringType })
             ) { backStackEntry ->
-                val partidoId = backStackEntry.arguments?.getInt("partidoId")
+                val partidoId = backStackEntry.arguments?.getString("partidoId")
                 val partido   = partidoViewModel.uiState.partidos.find { it.id == partidoId }
                 DetallePartidoScreen(
                     partido               = partido,
@@ -224,6 +228,9 @@ fun AppNavigation() {
 
             // 🏟 CANCHAS (listado público)
             composable(Screen.Canchas.route) {
+                LaunchedEffect(Unit) {
+                    canchaViewModel.cargarTodasLasCanchas()
+                }
                 CanchasScreen(
                     canchas       = canchaViewModel.uiState.canchas,
                     onSubirCancha = { navController.navigate(Screen.CrearCancha.route) },
@@ -289,6 +296,9 @@ fun AppNavigation() {
 
             // 🏠 MIS CANCHAS
             composable(Screen.MisCanchas.route) {
+                LaunchedEffect(perfilViewModel.email) {
+                    canchaViewModel.cargarCanchas(perfilViewModel.email)
+                }
                 MisCanchasScreen(
                     emailUsuario        = perfilViewModel.email,
                     canchaViewModel     = canchaViewModel,
@@ -301,9 +311,9 @@ fun AppNavigation() {
             // ⚙️ ADMINISTRAR UNA CANCHA
             composable(
                 route     = Screen.AdminCancha.route,
-                arguments = listOf(navArgument("canchaId") { type = NavType.IntType })
+                arguments = listOf(navArgument("canchaId") { type = NavType.StringType })
             ) { backStackEntry ->
-                val canchaId = backStackEntry.arguments?.getInt("canchaId") ?: return@composable
+                val canchaId = backStackEntry.arguments?.getString("canchaId") ?: return@composable
 
                 AdminCanchaScreen(
                     canchaId         = canchaId,

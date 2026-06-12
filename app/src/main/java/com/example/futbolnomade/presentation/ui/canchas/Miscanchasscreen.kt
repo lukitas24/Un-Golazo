@@ -37,13 +37,13 @@ fun MisCanchasScreen(
     emailUsuario: String,
     canchaViewModel: CanchaViewModel,          // ← ViewModel completo, no lista
     onCrearCancha: () -> Unit,
-    onAdministrarCancha: (Int) -> Unit,
+    onAdministrarCancha: (String) -> Unit,
     onVolver: () -> Unit
 ) {
     // Lee reactivamente del ViewModel — se recompone cada vez que uiState cambia
     val misCanchas = canchaViewModel.misCanchas(emailUsuario)
 
-    var confirmarEliminarId by remember { mutableStateOf<Int?>(null) }
+    var confirmarEliminarId by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         containerColor = ColorFondo,

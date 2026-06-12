@@ -1,7 +1,7 @@
 package com.example.futbolnomade.presentation.state
 
 data class PartidoResumen(
-    val id: Int,
+    val id: String,
     val titulo: String,
     val horario: String,
     val fecha: String,

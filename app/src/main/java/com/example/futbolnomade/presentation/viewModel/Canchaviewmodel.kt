@@ -8,24 +8,33 @@ import androidx.lifecycle.viewModelScope
 import com.example.futbolnomade.data.repository.CanchaRepositoryImpl
 import com.example.futbolnomade.domain.model.Cancha
 import com.example.futbolnomade.domain.model.HorarioDisponible
+import com.example.futbolnomade.domain.repository.CanchaRepository
 import com.example.futbolnomade.presentation.state.CanchaUiState
 import kotlinx.coroutines.launch
 
-class CanchaViewModel : ViewModel() {
+class CanchaViewModel(
+    private val repository: CanchaRepository = CanchaRepositoryImpl()
+) : ViewModel() {
 
     private val canchaRepository = CanchaRepositoryImpl()
 
     var uiState by mutableStateOf(CanchaUiState())
         private set
 
-    init {
-        actualizarUiState()
+    fun cargarCanchas(userId: String) {
+        viewModelScope.launch {
+            repository.getCanchas(userId).collect { canchas ->
+                uiState = uiState.copy(canchas = canchas)
+            }
+        }
     }
 
-    private fun actualizarUiState() {
-        uiState = uiState.copy(
-            canchas = canchaRepository.obtenerCanchas()
-        )
+    fun cargarTodasLasCanchas() {
+        viewModelScope.launch {
+            repository.getAllCanchas().collect { canchas ->
+                uiState = uiState.copy(canchas = canchas)
+            }
+        }
     }
 
     fun crearCancha(
@@ -76,7 +85,7 @@ class CanchaViewModel : ViewModel() {
     }
 
     fun actualizarCancha(
-        canchaId: Int,
+        canchaId: String,
         nombre: String,
         ubicacion: String,
         descripcion: String,
