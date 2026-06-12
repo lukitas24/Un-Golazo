@@ -35,7 +35,7 @@ sealed class Screen(val route: String) {
         fun createRoute(canchaId: String) = "admin_cancha/$canchaId"
     }
     object DetalleCancha : Screen("detalle_cancha/{canchaId}") {
-        fun createRoute(canchaId: Int) = "detalle_cancha/$canchaId"
+        fun createRoute(canchaId: String) = "detalle_cancha/$canchaId"
     }
 
     object CercaDeMi : Screen("cerca_de_mi")

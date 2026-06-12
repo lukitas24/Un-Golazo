@@ -790,7 +790,7 @@ fun CrearPartidoScreen(
                             dificultad.trim(),
                             participantesInt,
                             descripcion.trim(),
-                            cancha?.id,
+                            cancha?.id as Int?,
                             cancha?.nombre,
                             if (modoUbicacion == ModoUbicacion.CANCHA_APP) {
                                 cancha?.latitud

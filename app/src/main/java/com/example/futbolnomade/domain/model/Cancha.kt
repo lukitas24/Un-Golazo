@@ -7,17 +7,17 @@ data class HorarioDisponible(
 )
 
 data class Cancha(
-    val id: Int,
-    val nombre: String,
-    val ubicacion: String,
-    val descripcion: String,
-    val precio: Double,
-    val telefono: String,
-    val horarioApertura: String,
-    val horarioCierre: String,
-    val calificacion: Double,
-    val propietario: String,
-    val disponible: Boolean,
+    val id: String = "",
+    val nombre: String = "",
+    val ubicacion: String = "",
+    val descripcion: String = "",
+    val precio: Double = 0.0,
+    val telefono: String = "",
+    val horarioApertura: String = "",
+    val horarioCierre: String = "",
+    val calificacion: Double = 0.0,
+    val propietario: String = "",
+    val disponible: Boolean = true,
 
     val latitud: Double = -42.7692,
     val longitud: Double = -65.0385,

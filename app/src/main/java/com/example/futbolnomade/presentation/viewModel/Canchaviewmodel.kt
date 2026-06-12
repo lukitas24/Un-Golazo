@@ -16,8 +16,6 @@ class CanchaViewModel(
     private val repository: CanchaRepository = CanchaRepositoryImpl()
 ) : ViewModel() {
 
-    private val canchaRepository = CanchaRepositoryImpl()
-
     var uiState by mutableStateOf(CanchaUiState())
         private set
 
@@ -53,7 +51,7 @@ class CanchaViewModel(
         viewModelScope.launch {
             try {
                 val nuevaCancha = Cancha(
-                    id = 0,
+                    id = "", // Firebase will generate it
                     nombre = nombre,
                     ubicacion = ubicacion,
                     descripcion = descripcion,
@@ -69,9 +67,7 @@ class CanchaViewModel(
                     horarios = horariosDetallados
                 )
 
-                canchaRepository.crearCancha(nuevaCancha)
-
-                actualizarUiState()
+                repository.guardarCancha(nuevaCancha)
 
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -79,9 +75,10 @@ class CanchaViewModel(
         }
     }
 
-    fun eliminarCancha(canchaId: Int) {
-        canchaRepository.eliminarCancha(canchaId)
-        actualizarUiState()
+    fun eliminarCancha(canchaId: String) {
+        viewModelScope.launch {
+            repository.eliminarCancha(canchaId)
+        }
     }
 
     fun actualizarCancha(
@@ -95,44 +92,49 @@ class CanchaViewModel(
         latitud: Double? = null,
         longitud: Double? = null
     ) {
-        val canchaActual = canchaRepository.obtenerCancha(canchaId) ?: return
+        viewModelScope.launch {
+            val canchaActual = uiState.canchas.find { it.id == canchaId } ?: return@launch
 
-        val canchaActualizada = canchaActual.copy(
-            nombre = nombre,
-            ubicacion = ubicacion,
-            descripcion = descripcion,
-            precio = precio.toDoubleOrNull() ?: canchaActual.precio,
-            telefono = telefono,
-            disponible = disponible,
-            latitud = latitud ?: canchaActual.latitud,
-            longitud = longitud ?: canchaActual.longitud
-        )
+            val canchaActualizada = canchaActual.copy(
+                nombre = nombre,
+                ubicacion = ubicacion,
+                descripcion = descripcion,
+                precio = precio.toDoubleOrNull() ?: canchaActual.precio,
+                telefono = telefono,
+                disponible = disponible,
+                latitud = latitud ?: canchaActual.latitud,
+                longitud = longitud ?: canchaActual.longitud
+            )
 
-        canchaRepository.actualizarCancha(canchaActualizada)
-        actualizarUiState()
+            repository.guardarCancha(canchaActualizada)
+        }
     }
 
     fun agregarHorario(
-        canchaId: Int,
+        canchaId: String,
         horario: HorarioDisponible
     ) {
-        canchaRepository.agregarHorario(canchaId, horario)
-        actualizarUiState()
+        viewModelScope.launch {
+            val cancha = uiState.canchas.find { it.id == canchaId } ?: return@launch
+            repository.guardarCancha(cancha.copy(horarios = cancha.horarios + horario))
+        }
     }
 
     fun eliminarHorario(
-        canchaId: Int,
+        canchaId: String,
         horario: HorarioDisponible
     ) {
-        canchaRepository.eliminarHorario(canchaId, horario)
-        actualizarUiState()
+        viewModelScope.launch {
+            val cancha = uiState.canchas.find { it.id == canchaId } ?: return@launch
+            repository.guardarCancha(cancha.copy(horarios = cancha.horarios - horario))
+        }
     }
 
     fun misCanchas(emailPropietario: String): List<Cancha> {
-        return canchaRepository.obtenerCanchasPorPropietario(emailPropietario)
+        return uiState.canchas.filter { it.propietario == emailPropietario }
     }
 
-    fun getCanchaById(id: Int): Cancha? {
-        return canchaRepository.obtenerCancha(id)
+    fun getCanchaById(id: String): Cancha? {
+        return uiState.canchas.find { it.id == id }
     }
 }
