@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.futbolnomade.domain.model.Cancha
 import androidx.compose.foundation.background
+
 private val FondoOscuro = Color(0xFF202020)
 private val Verde = Color(0xFF82A820)
 private val BlancoCard = Color(0xFFF8F8F8)
@@ -139,6 +140,7 @@ fun CanchasScreen(
         }
     }
 }
+
 @Composable
 fun FiltroDropdownCanchas(
     titulo: String,

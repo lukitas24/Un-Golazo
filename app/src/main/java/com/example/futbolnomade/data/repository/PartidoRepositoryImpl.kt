@@ -20,11 +20,61 @@ class PartidoRepositoryImpl(
         remoteDataSource.crearPartido(partido)
     }
 
-    override suspend fun anotarseAPartido(partidoId: String, usuario: String): Boolean {
-        return remoteDataSource.anotarseAPartido(partidoId, usuario)
+    override fun eliminarPartido(id: Int) {
+        partidos.removeAll { partido ->
+            partido.id == id
+        }
     }
 
-    override suspend fun cancelarInscripcion(partidoId: String, usuario: String): Boolean {
-        return remoteDataSource.cancelarInscripcion(partidoId, usuario)
+    override fun anotarseAPartido(
+        partidoId: Int,
+        usuario: String
+    ): Boolean {
+        val index = partidos.indexOfFirst { partido ->
+            partido.id == partidoId
+        }
+
+        if (index == -1) return false
+
+        val partido = partidos[index]
+
+        if (usuario in partido.usuariosAnotados) {
+            return false
+        }
+
+        if (partido.participantesActuales >= partido.participantesMaximos) {
+            return false
+        }
+
+        partidos[index] = partido.copy(
+            participantesActuales = partido.participantesActuales + 1,
+            usuariosAnotados = partido.usuariosAnotados + usuario
+        )
+
+        return true
+    }
+
+    override fun cancelarInscripcion(
+        partidoId: Int,
+        usuario: String
+    ): Boolean {
+        val index = partidos.indexOfFirst { partido ->
+            partido.id == partidoId
+        }
+
+        if (index == -1) return false
+
+        val partido = partidos[index]
+
+        if (usuario !in partido.usuariosAnotados) {
+            return false
+        }
+
+        partidos[index] = partido.copy(
+            participantesActuales = partido.participantesActuales - 1,
+            usuariosAnotados = partido.usuariosAnotados - usuario
+        )
+
+        return true
     }
 }

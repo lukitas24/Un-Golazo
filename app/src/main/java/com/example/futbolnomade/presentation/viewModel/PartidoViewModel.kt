@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.futbolnomade.data.repository.PartidoRepositoryImpl
+import com.example.futbolnomade.domain.model.EstadoPartido
 import com.example.futbolnomade.domain.model.Partido
 import com.example.futbolnomade.domain.repository.PartidoRepository
 import com.example.futbolnomade.presentation.state.PartidoUiState
@@ -27,6 +28,19 @@ class PartidoViewModel(private val repository: PartidoRepository = PartidoReposi
         }
     }
 
+    fun misPartidos(emailUsuario: String): List<Partido> {
+        return uiState.partidos.filter { partido ->
+            partido.creador == emailUsuario
+        }
+    }
+
+    fun partidosVisibles(): List<Partido> {
+        return uiState.partidos.filter { partido ->
+            partido.estado == EstadoPartido.PUBLICADO ||
+                    partido.estado == EstadoPartido.RESERVA_APROBADA
+        }
+    }
+
     fun crearPartido(
         titulo: String,
         horario: String,
@@ -35,25 +49,59 @@ class PartidoViewModel(private val repository: PartidoRepository = PartidoReposi
         dificultad: String,
         participantes: Int,
         descripcion: String,
-        creador: String
+        creador: String,
+        canchaId: Int? = null,
+        nombreCancha: String? = null,
+        latitud: Double? = null,
+        longitud: Double? = null
     ) {
-        viewModelScope.launch {
-            val nuevoPartido = Partido(
-                titulo = titulo,
-                horario = horario,
-                fecha = fecha,
-                ubicacion = ubicacion,
-                dificultad = dificultad,
-                participantesActuales = 1,
-                participantesMaximos = participantes,
-                creador = creador,
-                calificacionCreador = 5.0,
-                descripcion = descripcion
-            )
-            repository.crearPartido(nuevoPartido)
-            cargarPartidos()
+        val estadoInicial = if (canchaId == null) {
+            EstadoPartido.PUBLICADO
+        } else {
+            EstadoPartido.PENDIENTE_RESERVA
         }
+
+        val nuevoPartido = Partido(
+            id = System.currentTimeMillis().toInt(),
+            titulo = titulo,
+            horario = horario,
+            fecha = fecha,
+            ubicacion = ubicacion,
+            dificultad = dificultad,
+            participantesActuales = 1,
+            participantesMaximos = participantes,
+            creador = creador,
+            calificacionCreador = 5.0,
+            descripcion = descripcion,
+            usuariosAnotados = listOf(creador),
+            canchaId = canchaId,
+            nombreCancha = nombreCancha,
+            latitud = latitud,
+            longitud = longitud,
+            estado = estadoInicial
+        )
+
+        repository.crearPartido(nuevoPartido)
+
+        cargarPartidos()
     }
+
+    fun eliminarPartido(id: Int) {
+        repository.eliminarPartido(id)
+
+        cargarPartidos()
+    }
+
+    fun anotarseAPartido(
+        partidoId: Int,
+        usuario: String
+    ): Boolean {
+        val resultado = repository.anotarseAPartido(
+            partidoId = partidoId,
+            usuario = usuario
+        )
+
+        cargarPartidos()
 
     fun anotarseAPartido(partidoId: String, usuario: String) {
         viewModelScope.launch {
@@ -62,10 +110,23 @@ class PartidoViewModel(private val repository: PartidoRepository = PartidoReposi
         }
     }
 
+    fun cancelarInscripcion(
+        partidoId: Int,
+        usuario: String
+    ): Boolean {
+        val resultado = repository.cancelarInscripcion(
+            partidoId = partidoId,
+            usuario = usuario
+        )
+
+        cargarPartidos()
+
     fun cancelarInscripcion(partidoId: String, usuario: String) {
         viewModelScope.launch {
             repository.cancelarInscripcion(partidoId, usuario)
             cargarPartidos()
         }
     }
+
+
 }

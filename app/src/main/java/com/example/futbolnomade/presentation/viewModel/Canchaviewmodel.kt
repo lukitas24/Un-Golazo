@@ -16,6 +16,8 @@ class CanchaViewModel(
     private val repository: CanchaRepository = CanchaRepositoryImpl()
 ) : ViewModel() {
 
+    private val canchaRepository = CanchaRepositoryImpl()
+
     var uiState by mutableStateOf(CanchaUiState())
         private set
 
@@ -43,27 +45,43 @@ class CanchaViewModel(
         telefono: String,
         horarioApertura: String,
         horarioCierre: String,
-        propietario: String
+        horariosDetallados: List<HorarioDisponible>,
+        propietario: String,
+        latitud: Double,
+        longitud: Double
     ) {
         viewModelScope.launch {
-            val nueva = Cancha(
-                nombre = nombre,
-                ubicacion = ubicacion,
-                descripcion = descripcion,
-                precio = precio.toDoubleOrNull() ?: 0.0,
-                telefono = telefono,
-                horarioApertura = horarioApertura,
-                horarioCierre = horarioCierre,
-                propietario = propietario
-            )
-            repository.guardarCancha(nueva)
+            try {
+                val nuevaCancha = Cancha(
+                    id = 0,
+                    nombre = nombre,
+                    ubicacion = ubicacion,
+                    descripcion = descripcion,
+                    precio = precio.toDoubleOrNull() ?: 0.0,
+                    telefono = telefono,
+                    horarioApertura = horarioApertura,
+                    horarioCierre = horarioCierre,
+                    calificacion = 5.0,
+                    propietario = propietario,
+                    disponible = true,
+                    latitud = latitud,
+                    longitud = longitud,
+                    horarios = horariosDetallados
+                )
+
+                canchaRepository.crearCancha(nuevaCancha)
+
+                actualizarUiState()
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
-    fun eliminarCancha(canchaId: String) {
-        viewModelScope.launch {
-            repository.eliminarCancha(canchaId)
-        }
+    fun eliminarCancha(canchaId: Int) {
+        canchaRepository.eliminarCancha(canchaId)
+        actualizarUiState()
     }
 
     fun actualizarCancha(
@@ -73,43 +91,48 @@ class CanchaViewModel(
         descripcion: String,
         precio: String,
         telefono: String,
-        disponible: Boolean
+        disponible: Boolean,
+        latitud: Double? = null,
+        longitud: Double? = null
     ) {
-        viewModelScope.launch {
-            val cancha = uiState.canchas.find { it.id == canchaId } ?: return@launch
-            val actualizada = cancha.copy(
-                nombre = nombre,
-                ubicacion = ubicacion,
-                descripcion = descripcion,
-                precio = precio.toDoubleOrNull() ?: cancha.precio,
-                telefono = telefono,
-                disponible = disponible
-            )
-            repository.guardarCancha(actualizada)
-        }
+        val canchaActual = canchaRepository.obtenerCancha(canchaId) ?: return
+
+        val canchaActualizada = canchaActual.copy(
+            nombre = nombre,
+            ubicacion = ubicacion,
+            descripcion = descripcion,
+            precio = precio.toDoubleOrNull() ?: canchaActual.precio,
+            telefono = telefono,
+            disponible = disponible,
+            latitud = latitud ?: canchaActual.latitud,
+            longitud = longitud ?: canchaActual.longitud
+        )
+
+        canchaRepository.actualizarCancha(canchaActualizada)
+        actualizarUiState()
     }
 
-    fun agregarHorario(canchaId: String, horario: HorarioDisponible) {
-        viewModelScope.launch {
-            val cancha = uiState.canchas.find { it.id == canchaId } ?: return@launch
-            val actualizada = cancha.copy(horarios = cancha.horarios + horario)
-            repository.guardarCancha(actualizada)
-        }
+    fun agregarHorario(
+        canchaId: Int,
+        horario: HorarioDisponible
+    ) {
+        canchaRepository.agregarHorario(canchaId, horario)
+        actualizarUiState()
     }
 
-    fun eliminarHorario(canchaId: String, horario: HorarioDisponible) {
-        viewModelScope.launch {
-            val cancha = uiState.canchas.find { it.id == canchaId } ?: return@launch
-            val actualizada = cancha.copy(horarios = cancha.horarios - horario)
-            repository.guardarCancha(actualizada)
-        }
+    fun eliminarHorario(
+        canchaId: Int,
+        horario: HorarioDisponible
+    ) {
+        canchaRepository.eliminarHorario(canchaId, horario)
+        actualizarUiState()
     }
 
-    fun misCanchas(emailPropietario: String): List<Cancha> =
-        uiState.canchas.filter {
-            it.propietario.lowercase() == emailPropietario.lowercase()
-        }
+    fun misCanchas(emailPropietario: String): List<Cancha> {
+        return canchaRepository.obtenerCanchasPorPropietario(emailPropietario)
+    }
 
-    fun getCanchaById(id: String): Cancha? =
-        uiState.canchas.find { it.id == id }
+    fun getCanchaById(id: Int): Cancha? {
+        return canchaRepository.obtenerCancha(id)
+    }
 }
