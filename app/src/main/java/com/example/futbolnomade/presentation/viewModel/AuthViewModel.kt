@@ -94,4 +94,47 @@ class AuthViewModel(
         auth.signOut()
         usuarioActual = null
     }
+
+    fun actualizarUsuarioActual(nombre: String, email: String, password: String) {
+        val user = auth.currentUser ?: return
+        
+        viewModelScope.launch {
+            try {
+                // Actualizar nombre en Firebase Auth
+                if (nombre.isNotBlank()) {
+                    val profileUpdates = UserProfileChangeRequest.Builder()
+                        .setDisplayName(nombre.trim())
+                        .build()
+                    user.updateProfile(profileUpdates).await()
+                }
+
+                // Actualizar email si es necesario (Firebase requiere re-auth para esto)
+                if (email.isNotBlank() && email != user.email) {
+                    user.updateEmail(email.trim().lowercase()).await()
+                }
+
+                // Actualizar password si es necesario
+                if (password.isNotBlank()) {
+                    user.updatePassword(password).await()
+                }
+
+                // Actualizar en Firestore
+                val jugadorActualizado = Jugador(
+                    id = user.uid,
+                    nombre = nombre.trim().ifBlank { user.displayName ?: "" },
+                    email = email.trim().lowercase().ifBlank { user.email ?: "" }
+                )
+                jugadorRepository.guardarJugador(jugadorActualizado)
+
+                // Actualizar estado local
+                usuarioActual = Usuario(
+                    nombre = jugadorActualizado.nombre,
+                    email = jugadorActualizado.email,
+                    uid = user.uid
+                )
+            } catch (e: Exception) {
+
+            }
+        }
+    }
 }
