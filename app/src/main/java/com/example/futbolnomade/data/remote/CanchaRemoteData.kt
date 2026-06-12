@@ -13,7 +13,19 @@ class CanchaRemoteDataSource {
 
     fun getCanchas(userId: String): Flow<List<Cancha>> = callbackFlow {
         val listener = db.collection("canchas")
-            .whereEqualTo("propietarioId", userId)
+            .whereEqualTo("propietario", userId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) { close(error); return@addSnapshotListener }
+                val lista = snapshot?.documents?.mapNotNull {
+                    it.toObject(Cancha::class.java)?.copy(id = it.id)
+                } ?: emptyList()
+                trySend(lista)
+            }
+        awaitClose { listener.remove() }
+    }
+
+    fun getAllCanchas(): Flow<List<Cancha>> = callbackFlow {
+        val listener = db.collection("canchas")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) { close(error); return@addSnapshotListener }
                 val lista = snapshot?.documents?.mapNotNull {

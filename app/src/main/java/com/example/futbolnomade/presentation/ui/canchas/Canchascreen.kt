@@ -23,7 +23,7 @@ private val BlancoCard = Color(0xFFF8F8F8)
 fun CanchasScreen(
     canchas: List<Cancha>,
     onSubirCancha: () -> Unit,
-    onVerDetalle: (Int) -> Unit
+    onVerDetalle: (String) -> Unit
 ) {
     var busqueda by remember { mutableStateOf("") }
     var filtroSeleccionado by remember { mutableStateOf("Disponibilidad") }

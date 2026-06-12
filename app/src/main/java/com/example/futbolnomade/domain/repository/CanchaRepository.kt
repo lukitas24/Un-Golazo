@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface CanchaRepository {
     fun getCanchas(userId: String): Flow<List<Cancha>>
+    fun getAllCanchas(): Flow<List<Cancha>>
     suspend fun guardarCancha(cancha: Cancha)
     suspend fun eliminarCancha(id: String)
 }

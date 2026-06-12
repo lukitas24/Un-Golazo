@@ -7,13 +7,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
+import com.example.futbolnomade.data.repository.JugadorRepositoryImpl
+import com.example.futbolnomade.domain.model.Jugador
+import com.example.futbolnomade.domain.repository.JugadorRepository
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 data class Usuario(
     val nombre: String,
     val email: String,
-    val uid: String = ""
+    val uid: String = "",
 )
 
 sealed class AuthResult {
@@ -21,7 +24,9 @@ sealed class AuthResult {
     data class Error(val mensaje: String) : AuthResult()
 }
 
-class AuthViewModel : ViewModel() {
+class AuthViewModel(
+    private val jugadorRepository: JugadorRepository = JugadorRepositoryImpl()
+) : ViewModel() {
 
     private val auth = FirebaseAuth.getInstance()
 
@@ -69,6 +74,13 @@ class AuthViewModel : ViewModel() {
                     .setDisplayName(nombre.trim())
                     .build()
                 user?.updateProfile(profileUpdates)?.await()
+                
+                val nuevoJugador = Jugador(
+                    id = user?.uid ?: "",
+                    nombre = nombre.trim(),
+                    email = cleanEmail
+                )
+                jugadorRepository.guardarJugador(nuevoJugador)
                 
                 usuarioActual = Usuario(nombre = nombre.trim(), email = cleanEmail, uid = user?.uid ?: "")
                 onResult(AuthResult.Success)

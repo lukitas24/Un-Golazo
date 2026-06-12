@@ -12,6 +12,9 @@ class CanchaRepositoryImpl(
     override fun getCanchas(userId: String): Flow<List<Cancha>> =
         remoteDataSource.getCanchas(userId)
 
+    override fun getAllCanchas(): Flow<List<Cancha>> =
+        remoteDataSource.getAllCanchas()
+
     override suspend fun guardarCancha(cancha: Cancha) =
         remoteDataSource.guardarCancha(cancha)
 

@@ -3,6 +3,7 @@ package com.example.futbolnomade.presentation.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -127,6 +128,9 @@ fun AppNavigation() {
 
             // ⚽ PARTIDOS
             composable(Screen.Partidos.route) {
+                LaunchedEffect(Unit) {
+                    partidoViewModel.cargarPartidos()
+                }
                 PartidosScreen(
                     uiState        = partidoViewModel.uiState,
                     onCrearPartido = { navController.navigate(Screen.CrearPartido.route) },
@@ -137,7 +141,10 @@ fun AppNavigation() {
             composable(Screen.CrearPartido.route) {
                 CrearPartidoScreen(
                     onCrearPartido = { titulo, horario, fecha, ubicacion, dificultad, participantes, descripcion ->
-                        partidoViewModel.crearPartido(titulo, horario, fecha, ubicacion, dificultad, participantes, descripcion)
+                        partidoViewModel.crearPartido(
+                            titulo, horario, fecha, ubicacion, dificultad,
+                            participantes, descripcion, perfilViewModel.nombre
+                        )
                         navController.popBackStack()
                     },
                     onVolver = { navController.popBackStack() }
@@ -160,6 +167,9 @@ fun AppNavigation() {
 
             // 🏟 CANCHAS (listado público — todos pueden ver)
             composable(Screen.Canchas.route) {
+                LaunchedEffect(Unit) {
+                    canchaViewModel.cargarTodasLasCanchas()
+                }
                 CanchasScreen(
                     canchas       = canchaViewModel.uiState.canchas,
                     onSubirCancha = { navController.navigate(Screen.CrearCancha.route) },
@@ -189,6 +199,9 @@ fun AppNavigation() {
 
             // 🏠 MIS CANCHAS — pasa el ViewModel completo para reactividad
             composable(Screen.MisCanchas.route) {
+                LaunchedEffect(perfilViewModel.email) {
+                    canchaViewModel.cargarCanchas(perfilViewModel.email)
+                }
                 MisCanchasScreen(
                     emailUsuario        = perfilViewModel.email,
                     canchaViewModel     = canchaViewModel,

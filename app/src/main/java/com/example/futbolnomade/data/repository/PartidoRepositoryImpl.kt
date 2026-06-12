@@ -1,83 +1,30 @@
 package com.example.futbolnomade.data.repository
 
+import com.example.futbolnomade.data.remote.PartidoRemoteDataSource
 import com.example.futbolnomade.domain.model.Partido
 import com.example.futbolnomade.domain.repository.PartidoRepository
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.tasks.await
 
-class PartidoRepositoryImpl : PartidoRepository {
-
-    private val db = FirebaseFirestore.getInstance()
-    private val partidosCollection = db.collection("partidos")
+class PartidoRepositoryImpl(
+    private val remoteDataSource: PartidoRemoteDataSource = PartidoRemoteDataSource()
+) : PartidoRepository {
 
     override suspend fun obtenerPartidos(): List<Partido> {
-        return try {
-            val snapshot = partidosCollection.get().await()
-            snapshot.toObjects(Partido::class.java)
-        } catch (e: Exception) {
-            emptyList()
-        }
+        return remoteDataSource.obtenerPartidos()
     }
 
     override suspend fun obtenerPartido(id: String): Partido? {
-        return try {
-            val document = partidosCollection.document(id).get().await()
-            document.toObject(Partido::class.java)
-        } catch (e: Exception) {
-            null
-        }
+        return remoteDataSource.obtenerPartido(id)
     }
 
     override suspend fun crearPartido(partido: Partido) {
-        try {
-            val docRef = if (partido.id.isEmpty()) {
-                partidosCollection.document()
-            } else {
-                partidosCollection.document(partido.id)
-            }
-            val partidoConId = partido.copy(id = docRef.id)
-            docRef.set(partidoConId).await()
-        } catch (e: Exception) {
-            // Manejar error
-        }
+        remoteDataSource.crearPartido(partido)
     }
 
     override suspend fun anotarseAPartido(partidoId: String, usuario: String): Boolean {
-        return try {
-            val docRef = partidosCollection.document(partidoId)
-            db.runTransaction { transaction ->
-                val snapshot = transaction.get(docRef)
-                val partido = snapshot.toObject(Partido::class.java) ?: return@runTransaction false
-                
-                if (usuario in partido.usuariosAnotados) return@runTransaction false
-                if (partido.participantesActuales >= partido.participantesMaximos) return@runTransaction false
-                
-                val nuevosUsuarios = partido.usuariosAnotados + usuario
-                transaction.update(docRef, "usuariosAnotados", nuevosUsuarios)
-                transaction.update(docRef, "participantesActuales", partido.participantesActuales + 1)
-                true
-            }.await()
-        } catch (e: Exception) {
-            false
-        }
+        return remoteDataSource.anotarseAPartido(partidoId, usuario)
     }
 
     override suspend fun cancelarInscripcion(partidoId: String, usuario: String): Boolean {
-        return try {
-            val docRef = partidosCollection.document(partidoId)
-            db.runTransaction { transaction ->
-                val snapshot = transaction.get(docRef)
-                val partido = snapshot.toObject(Partido::class.java) ?: return@runTransaction false
-                
-                if (usuario !in partido.usuariosAnotados) return@runTransaction false
-                
-                val nuevosUsuarios = partido.usuariosAnotados - usuario
-                transaction.update(docRef, "usuariosAnotados", nuevosUsuarios)
-                transaction.update(docRef, "participantesActuales", partido.participantesActuales - 1)
-                true
-            }.await()
-        } catch (e: Exception) {
-            false
-        }
+        return remoteDataSource.cancelarInscripcion(partidoId, usuario)
     }
 }

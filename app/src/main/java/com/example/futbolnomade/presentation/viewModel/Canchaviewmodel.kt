@@ -27,6 +27,14 @@ class CanchaViewModel(
         }
     }
 
+    fun cargarTodasLasCanchas() {
+        viewModelScope.launch {
+            repository.getAllCanchas().collect { canchas ->
+                uiState = uiState.copy(canchas = canchas)
+            }
+        }
+    }
+
     fun crearCancha(
         nombre: String,
         ubicacion: String,

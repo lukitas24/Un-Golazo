@@ -34,7 +34,8 @@ class PartidoViewModel(private val repository: PartidoRepository = PartidoReposi
         ubicacion: String,
         dificultad: String,
         participantes: Int,
-        descripcion: String
+        descripcion: String,
+        creador: String
     ) {
         viewModelScope.launch {
             val nuevoPartido = Partido(
@@ -45,7 +46,7 @@ class PartidoViewModel(private val repository: PartidoRepository = PartidoReposi
                 dificultad = dificultad,
                 participantesActuales = 1,
                 participantesMaximos = participantes,
-                creador = "admin",
+                creador = creador,
                 calificacionCreador = 5.0,
                 descripcion = descripcion
             )
