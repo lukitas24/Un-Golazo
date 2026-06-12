@@ -2,14 +2,10 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
-
     id("com.google.gms.google-services")
-}
-
-
-    // Deja SOLO esta línea de abajo. Borra la que tenía el id(...) largo
     alias(libs.plugins.mapsplatform.secrets)
 }
+
 android {
     namespace = "com.example.futbolnomade"
     compileSdk = 36
@@ -41,8 +37,8 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.foundation)
-    implementation(libs.androidx.foundation.layout)
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.foundation:foundation-layout")
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)

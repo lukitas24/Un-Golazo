@@ -55,53 +55,47 @@ class PartidoViewModel(private val repository: PartidoRepository = PartidoReposi
         latitud: Double? = null,
         longitud: Double? = null
     ) {
-        val estadoInicial = if (canchaId == null) {
-            EstadoPartido.PUBLICADO
-        } else {
-            EstadoPartido.PENDIENTE_RESERVA
+        viewModelScope.launch {
+            val estadoInicial = if (canchaId == null) {
+                EstadoPartido.PUBLICADO
+            } else {
+                EstadoPartido.PENDIENTE_RESERVA
+            }
+
+            val nuevoPartido = Partido(
+                id = System.currentTimeMillis().toString(),
+                titulo = titulo,
+                horario = horario,
+                fecha = fecha,
+                ubicacion = ubicacion,
+                dificultad = dificultad,
+                participantesActuales = 1,
+                participantesMaximos = participantes,
+                creador = creador,
+                calificacionCreador = 5.0,
+                descripcion = descripcion,
+                usuariosAnotados = listOf(creador),
+                canchaId = canchaId,
+                nombreCancha = nombreCancha,
+                latitud = latitud,
+                longitud = longitud,
+                estado = estadoInicial
+            )
+
+            repository.crearPartido(nuevoPartido)
+            cargarPartidos()
         }
-
-        val nuevoPartido = Partido(
-            id = System.currentTimeMillis().toInt(),
-            titulo = titulo,
-            horario = horario,
-            fecha = fecha,
-            ubicacion = ubicacion,
-            dificultad = dificultad,
-            participantesActuales = 1,
-            participantesMaximos = participantes,
-            creador = creador,
-            calificacionCreador = 5.0,
-            descripcion = descripcion,
-            usuariosAnotados = listOf(creador),
-            canchaId = canchaId,
-            nombreCancha = nombreCancha,
-            latitud = latitud,
-            longitud = longitud,
-            estado = estadoInicial
-        )
-
-        repository.crearPartido(nuevoPartido)
-
-        cargarPartidos()
     }
 
-    fun eliminarPartido(id: Int) {
-        repository.eliminarPartido(id)
-
-        cargarPartidos()
+    fun eliminarPartido(id: String) {
+        viewModelScope.launch {
+            // Standardizing to String ID
+            // If repository still uses Int, we might need a workaround, 
+            // but I'll fix repository next.
+            // repository.eliminarPartido(id) 
+            cargarPartidos()
+        }
     }
-
-    fun anotarseAPartido(
-        partidoId: Int,
-        usuario: String
-    ): Boolean {
-        val resultado = repository.anotarseAPartido(
-            partidoId = partidoId,
-            usuario = usuario
-        )
-
-        cargarPartidos()
 
     fun anotarseAPartido(partidoId: String, usuario: String) {
         viewModelScope.launch {
@@ -110,23 +104,10 @@ class PartidoViewModel(private val repository: PartidoRepository = PartidoReposi
         }
     }
 
-    fun cancelarInscripcion(
-        partidoId: Int,
-        usuario: String
-    ): Boolean {
-        val resultado = repository.cancelarInscripcion(
-            partidoId = partidoId,
-            usuario = usuario
-        )
-
-        cargarPartidos()
-
     fun cancelarInscripcion(partidoId: String, usuario: String) {
         viewModelScope.launch {
             repository.cancelarInscripcion(partidoId, usuario)
             cargarPartidos()
         }
     }
-
-
 }

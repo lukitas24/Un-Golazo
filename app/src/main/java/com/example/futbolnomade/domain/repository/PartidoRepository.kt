@@ -10,10 +10,10 @@ interface PartidoRepository {
 
     suspend fun crearPartido(partido: Partido)
 
-    fun eliminarPartido(id: Int)
+    suspend fun eliminarPartido(id: String)
 
-    fun anotarseAPartido(
-        partidoId: Int,
+    suspend fun anotarseAPartido(
+        partidoId: String,
         usuario: String
     ): Boolean
 

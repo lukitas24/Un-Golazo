@@ -50,8 +50,8 @@ private sealed class ElementoMapa {
 fun CercaDeMiScreen(
     canchas: List<Cancha>,
     partidos: List<Partido>,
-    onVerDetalleCancha: (Int) -> Unit,
-    onVerDetallePartido: (Int) -> Unit,
+    onVerDetalleCancha: (String) -> Unit,
+    onVerDetallePartido: (String) -> Unit,
     onVolver: () -> Unit
 ) {
     val context = LocalContext.current

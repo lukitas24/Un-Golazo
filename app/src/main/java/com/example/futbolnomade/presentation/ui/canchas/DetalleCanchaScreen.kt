@@ -39,7 +39,7 @@ private val ColorSub = Color(0xFF999999)
 fun DetalleCanchaScreen(
     cancha: Cancha?,
     turnosReservados: List<String> = emptyList(),
-    onReservarTurno: (canchaId: Int, hora: String) -> Unit,
+    onReservarTurno: (canchaId: String, hora: String) -> Unit,
     onVolver: () -> Unit
 ) {
     if (cancha == null) {

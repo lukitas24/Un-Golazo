@@ -134,10 +134,10 @@ fun AppNavigation() {
                 CercaDeMiScreen(
                     canchas = canchaViewModel.uiState.canchas,
                     partidos = partidoViewModel.uiState.partidos,
-                    onVerDetalleCancha = { id: Int ->
+                    onVerDetalleCancha = { id: String ->
                         navController.navigate(Screen.DetalleCancha.createRoute(id))
                     },
-                    onVerDetallePartido = { id: Int ->
+                    onVerDetallePartido = { id: String ->
                         navController.navigate(Screen.DetallePartido.createRoute(id))
                     },
                     onVolver = { navController.popBackStack() }
@@ -241,9 +241,9 @@ fun AppNavigation() {
             // 🏟 DETALLE DE CANCHA PÚBLICA
             composable(
                 route = Screen.DetalleCancha.route,
-                arguments = listOf(navArgument("canchaId") { type = NavType.IntType })
+                arguments = listOf(navArgument("canchaId") { type = NavType.StringType })
             ) { backStackEntry ->
-                val canchaId = backStackEntry.arguments?.getInt("canchaId")
+                val canchaId = backStackEntry.arguments?.getString("canchaId") ?: ""
                 val cancha   = canchaViewModel.uiState.canchas.find { it.id == canchaId }
 
                 DetalleCanchaScreen(

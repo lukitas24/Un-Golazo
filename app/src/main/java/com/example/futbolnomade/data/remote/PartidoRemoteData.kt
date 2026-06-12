@@ -40,6 +40,14 @@ class PartidoRemoteDataSource {
         }
     }
 
+    suspend fun eliminarPartido(id: String) {
+        try {
+            partidosCollection.document(id).delete().await()
+        } catch (e: Exception) {
+            // Manejar error
+        }
+    }
+
     suspend fun anotarseAPartido(partidoId: String, usuario: String): Boolean {
         return try {
             val docRef = partidosCollection.document(partidoId)

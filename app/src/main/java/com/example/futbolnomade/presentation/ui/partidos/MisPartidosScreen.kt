@@ -56,12 +56,12 @@ fun MisPartidosScreen(
     emailUsuario: String,
     partidoViewModel: PartidoViewModel,
     onCrearPartido: () -> Unit,
-    onAdministrarPartido: (Int) -> Unit,
+    onAdministrarPartido: (String) -> Unit,
     onVolver: () -> Unit
 ) {
     val misPartidos = partidoViewModel.misPartidos(emailUsuario)
 
-    var confirmarEliminarId by remember { mutableStateOf<Int?>(null) }
+    var confirmarEliminarId by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         containerColor = ColorFondo,
