@@ -18,6 +18,9 @@ data class Cancha(
     val calificacion: Double,
     val propietario: String,
     val disponible: Boolean,
-    // Horarios por día (para administración avanzada)
+
+    val latitud: Double = -42.7692,
+    val longitud: Double = -65.0385,
+
     val horarios: List<HorarioDisponible> = emptyList()
 )

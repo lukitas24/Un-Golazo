@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
@@ -36,7 +35,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.futbolnomade.presentation.state.PartidoResumen
 import com.example.futbolnomade.presentation.viewModel.HomeViewModel
 
-// ── Paleta ──────────────────────────────────────────────────────────────────
 private val ColorFondo       = Color(0xFF1A1A1A)
 private val ColorTarjeta     = Color(0xFF242424)
 private val ColorBorde       = Color(0xFF2E2E2E)
@@ -45,14 +43,12 @@ private val ColorVerdeOscuro = Color(0xFF6A9E2F)
 private val ColorTexto       = Color(0xFFEEEEEE)
 private val ColorSubtexto    = Color(0xFF999999)
 
-// ── Modelo de ítem de grilla ─────────────────────────────────────────────────
 private data class GridItem(
     val label: String,
     val icon: ImageVector,
     val onClick: () -> Unit
 )
 
-// ── Pantalla principal ───────────────────────────────────────────────────────
 @Composable
 fun HomeScreen(
     nombreUsuario: String,
@@ -75,17 +71,19 @@ fun HomeScreen(
         homeViewModel.inicializar(nombreUsuario, emailUsuario)
     }
 
-    // Icons.Default.* que existen en material-icons-core (sin extended)
     val gridItems = listOf(
-        GridItem("Canchas",      Icons.Default.Place,       onIrACanchas),
-        GridItem("Partidos",     Icons.Default.Home,        onIrAPartidos),
-        GridItem("Cerca mío",    Icons.Default.LocationOn,  onIrACercaMio),
-        GridItem("Mis reservas", Icons.Default.DateRange,   onIrAMisReservas),
-        GridItem("Mis partidos", Icons.Default.Person,      onIrAMisPartidos),
-        GridItem("Mis canchas",  Icons.Default.Favorite,    onIrAMisCanchas)
+        GridItem("Canchas",      Icons.Default.Place,      onIrACanchas),
+        GridItem("Partidos",     Icons.Default.Home,       onIrAPartidos),
+        GridItem("Cerca mío",    Icons.Default.LocationOn, onIrACercaMio),
+        GridItem("Mis reservas", Icons.Default.DateRange,  onIrAMisReservas),
+        GridItem("Mis partidos", Icons.Default.Person,     onIrAMisPartidos),
+        GridItem("Mis canchas",  Icons.Default.Favorite,   onIrAMisCanchas)
     )
 
-    Surface(modifier = Modifier.fillMaxSize(), color = ColorFondo) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = ColorFondo
+    ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -94,15 +92,20 @@ fun HomeScreen(
         ) {
             item {
                 Spacer(Modifier.height(16.dp))
+
                 HeaderUsuario(
                     nombre = nombreUsuario.ifBlank { uiState.nombreUsuario },
-                    email  = emailUsuario.ifBlank  { uiState.emailUsuario }
+                    email = emailUsuario.ifBlank { uiState.emailUsuario }
                 )
             }
 
-            item { BuscadorPartido(onBuscar = onBuscarPartido) }
+            item {
+                BuscadorPartido(onBuscar = onBuscarPartido)
+            }
 
-            item { GrillaAccesos(items = gridItems) }
+            item {
+                GrillaAccesos(items = gridItems)
+            }
 
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -112,7 +115,9 @@ fun HomeScreen(
                         tint = ColorVerde,
                         modifier = Modifier.size(18.dp)
                     )
+
                     Spacer(Modifier.width(6.dp))
+
                     Text(
                         text = "Próximos eventos",
                         color = ColorVerde,
@@ -123,17 +128,26 @@ fun HomeScreen(
             }
 
             items(uiState.proximosPartidos) { partido ->
-                CardPartido(partido = partido, onClick = { onVerDetallePartido(partido.id) })
+                CardPartido(
+                    partido = partido,
+                    onClick = {
+                        onVerDetallePartido(partido.id)
+                    }
+                )
             }
 
-            item { Spacer(Modifier.height(8.dp)) }
+            item {
+                Spacer(Modifier.height(8.dp))
+            }
         }
     }
 }
 
-// ── Header ───────────────────────────────────────────────────────────────────
 @Composable
-private fun HeaderUsuario(nombre: String, email: String) {
+private fun HeaderUsuario(
+    nombre: String,
+    email: String
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
@@ -152,17 +166,30 @@ private fun HeaderUsuario(nombre: String, email: String) {
                 fontSize = 20.sp
             )
         }
+
         Spacer(Modifier.width(12.dp))
+
         Column {
-            Text("Bienvenido", color = ColorTexto, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(email.ifBlank { nombre }, color = ColorSubtexto, fontSize = 13.sp)
+            Text(
+                text = "Bienvenido",
+                color = ColorTexto,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = email.ifBlank { nombre },
+                color = ColorSubtexto,
+                fontSize = 13.sp
+            )
         }
     }
 }
 
-// ── Buscador ─────────────────────────────────────────────────────────────────
 @Composable
-private fun BuscadorPartido(onBuscar: (String) -> Unit) {
+private fun BuscadorPartido(
+    onBuscar: (String) -> Unit
+) {
     var texto by remember { mutableStateOf("") }
 
     Row(
@@ -176,48 +203,84 @@ private fun BuscadorPartido(onBuscar: (String) -> Unit) {
     ) {
         BasicTextField(
             value = texto,
-            onValueChange = { texto = it },
+            onValueChange = {
+                texto = it
+            },
             modifier = Modifier.weight(1f),
             singleLine = true,
-            textStyle = TextStyle(color = ColorTexto, fontSize = 14.sp),
+            textStyle = TextStyle(
+                color = ColorTexto,
+                fontSize = 14.sp
+            ),
             cursorBrush = SolidColor(ColorVerde),
             decorationBox = { inner ->
-                if (texto.isEmpty()) Text("Buscar partido", color = ColorSubtexto, fontSize = 14.sp)
+                if (texto.isEmpty()) {
+                    Text(
+                        text = "Buscar partido",
+                        color = ColorSubtexto,
+                        fontSize = 14.sp
+                    )
+                }
+
                 inner()
             }
         )
-        IconButton(onClick = { onBuscar(texto) }, modifier = Modifier.size(24.dp)) {
-            Icon(Icons.Default.Search, contentDescription = "Buscar", tint = ColorVerde)
+
+        IconButton(
+            onClick = {
+                onBuscar(texto)
+            },
+            modifier = Modifier.size(24.dp)
+        ) {
+            Icon(
+                Icons.Default.Search,
+                contentDescription = "Buscar",
+                tint = ColorVerde
+            )
         }
     }
 }
 
-// ── Grilla 3×2 ───────────────────────────────────────────────────────────────
 @Composable
-private fun GrillaAccesos(items: List<GridItem>) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+private fun GrillaAccesos(
+    items: List<GridItem>
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         items.chunked(3).forEach { fila ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 fila.forEach { item ->
-                    ItemGrilla(item = item, modifier = Modifier.weight(1f))
+                    ItemGrilla(
+                        item = item,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-                repeat(3 - fila.size) { Spacer(Modifier.weight(1f)) }
+
+                repeat(3 - fila.size) {
+                    Spacer(Modifier.weight(1f))
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ItemGrilla(item: GridItem, modifier: Modifier = Modifier) {
+private fun ItemGrilla(
+    item: GridItem,
+    modifier: Modifier = Modifier
+) {
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .background(ColorTarjeta)
             .border(1.dp, ColorBorde, RoundedCornerShape(12.dp))
-            .clickable { item.onClick() }
+            .clickable {
+                item.onClick()
+            }
             .padding(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -228,21 +291,32 @@ private fun ItemGrilla(item: GridItem, modifier: Modifier = Modifier) {
             tint = ColorVerde,
             modifier = Modifier.size(32.dp)
         )
+
         Spacer(Modifier.height(8.dp))
-        Text(item.label, color = ColorTexto, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+
+        Text(
+            text = item.label,
+            color = ColorTexto,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
-// ── Card de partido próximo ───────────────────────────────────────────────────
 @Composable
-private fun CardPartido(partido: PartidoResumen, onClick: () -> Unit) {
+private fun CardPartido(
+    partido: PartidoResumen,
+    onClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(ColorTarjeta)
             .border(1.dp, ColorBorde, RoundedCornerShape(12.dp))
-            .clickable { onClick() }
+            .clickable {
+                onClick()
+            }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -263,14 +337,41 @@ private fun CardPartido(partido: PartidoResumen, onClick: () -> Unit) {
 
         Spacer(Modifier.width(12.dp))
 
-        Column(modifier = Modifier.weight(1f)) {
-            Text(partido.titulo, color = ColorTexto, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = partido.titulo,
+                color = ColorTexto,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+
             Spacer(Modifier.height(2.dp))
-            Text("Anfitrión: ${partido.anfitrion}", color = ColorSubtexto, fontSize = 12.sp)
+
+            Text(
+                text = "Anfitrión: ${partido.anfitrion}",
+                color = ColorSubtexto,
+                fontSize = 12.sp
+            )
+
             Spacer(Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Star, contentDescription = null, tint = ColorVerde, modifier = Modifier.size(14.dp))
-                Text(" ${partido.rating}", color = ColorSubtexto, fontSize = 12.sp)
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.Star,
+                    contentDescription = null,
+                    tint = ColorVerde,
+                    modifier = Modifier.size(14.dp)
+                )
+
+                Text(
+                    text = " ${partido.rating}",
+                    color = ColorSubtexto,
+                    fontSize = 12.sp
+                )
             }
         }
 
@@ -281,7 +382,12 @@ private fun CardPartido(partido: PartidoResumen, onClick: () -> Unit) {
                 .background(ColorVerde)
                 .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
-            Text(partido.fecha, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = partido.fecha,
+                color = Color.White,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }

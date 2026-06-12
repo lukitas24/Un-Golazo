@@ -44,11 +44,19 @@ class PartidoRepositoryImpl : PartidoRepository {
         partidos.add(partido)
     }
 
+    override fun eliminarPartido(id: Int) {
+        partidos.removeAll { partido ->
+            partido.id == id
+        }
+    }
+
     override fun anotarseAPartido(
         partidoId: Int,
         usuario: String
     ): Boolean {
-        val index = partidos.indexOfFirst { it.id == partidoId }
+        val index = partidos.indexOfFirst { partido ->
+            partido.id == partidoId
+        }
 
         if (index == -1) return false
 
@@ -74,7 +82,9 @@ class PartidoRepositoryImpl : PartidoRepository {
         partidoId: Int,
         usuario: String
     ): Boolean {
-        val index = partidos.indexOfFirst { it.id == partidoId }
+        val index = partidos.indexOfFirst { partido ->
+            partido.id == partidoId
+        }
 
         if (index == -1) return false
 

@@ -21,6 +21,7 @@ import com.example.futbolnomade.presentation.ui.canchas.AdminCanchaScreen
 import com.example.futbolnomade.presentation.ui.canchas.CanchasScreen
 import com.example.futbolnomade.presentation.ui.canchas.CrearCanchaScreen
 import com.example.futbolnomade.presentation.ui.canchas.MisCanchasScreen
+import com.example.futbolnomade.presentation.ui.canchas.DetalleCanchaScreen
 import com.example.futbolnomade.presentation.ui.components.AppBottomBar
 import com.example.futbolnomade.presentation.ui.partidos.CrearPartidoScreen
 import com.example.futbolnomade.presentation.ui.partidos.DetallePartidoScreen
@@ -32,6 +33,8 @@ import com.example.futbolnomade.presentation.viewModel.CanchaViewModel
 import com.example.futbolnomade.presentation.viewModel.HomeViewModel
 import com.example.futbolnomade.presentation.viewModel.PartidoViewModel
 import com.example.futbolnomade.presentation.viewModel.PerfilViewModel
+import com.example.futbolnomade.presentation.ui.CercaDeMiScreen
+import com.example.futbolnomade.presentation.ui.partidos.MisPartidosScreen
 
 private val rutasSinBottomBar = setOf(Screen.Login.route, Screen.Register.route)
 
@@ -107,10 +110,10 @@ fun AppNavigation() {
                     homeViewModel       = homeViewModel,
                     onIrAPartidos       = { navController.navigate(Screen.Partidos.route) },
                     onIrACanchas        = { navController.navigate(Screen.Canchas.route) },
-                    onIrAMisPartidos    = { navController.navigate(Screen.Partidos.route) },
+                    onIrAMisPartidos    = { navController.navigate(Screen.MisPartidos.route) },
                     onIrAMisCanchas     = { navController.navigate(Screen.MisCanchas.route) },
                     onIrAMisReservas    = { navController.navigate(Screen.Partidos.route) },
-                    onIrACercaMio       = { navController.navigate(Screen.Canchas.route) },
+                    onIrACercaMio       = { navController.navigate(Screen.CercaDeMi.route) },
                     onBuscarPartido     = { navController.navigate(Screen.Search.route) },
                     onVerDetallePartido = { id -> navController.navigate(Screen.DetallePartido.createRoute(id)) },
                     onIrAElementos      = { navController.navigate(Screen.Elementos.route) },
@@ -125,6 +128,21 @@ fun AppNavigation() {
                 AcercaScreen(onVolver = { navController.popBackStack() })
             }
 
+            // 🗺️ PANTALLA MAPA CERCA MÍO (Llama correctamente a CercaDeMiScreen e infiere tipos)
+            composable(Screen.CercaDeMi.route) {
+                CercaDeMiScreen(
+                    canchas = canchaViewModel.uiState.canchas,
+                    partidos = partidoViewModel.uiState.partidos,
+                    onVerDetalleCancha = { id: Int ->
+                        navController.navigate(Screen.DetalleCancha.createRoute(id))
+                    },
+                    onVerDetallePartido = { id: Int ->
+                        navController.navigate(Screen.DetallePartido.createRoute(id))
+                    },
+                    onVolver = { navController.popBackStack() }
+                )
+            }
+
             // ⚽ PARTIDOS
             composable(Screen.Partidos.route) {
                 PartidosScreen(
@@ -136,13 +154,43 @@ fun AppNavigation() {
             }
             composable(Screen.CrearPartido.route) {
                 CrearPartidoScreen(
-                    onCrearPartido = { titulo, horario, fecha, ubicacion, dificultad, participantes, descripcion ->
-                        partidoViewModel.crearPartido(titulo, horario, fecha, ubicacion, dificultad, participantes, descripcion)
+                    canchas = canchaViewModel.uiState.canchas,
+                    onCrearPartido = {
+                            titulo,
+                            horario,
+                            fecha,
+                            ubicacion,
+                            dificultad,
+                            participantes,
+                            descripcion,
+                            canchaId,
+                            nombreCancha,
+                            latitud,
+                            longitud ->
+
+                        partidoViewModel.crearPartido(
+                            titulo = titulo,
+                            horario = horario,
+                            fecha = fecha,
+                            ubicacion = ubicacion,
+                            dificultad = dificultad,
+                            participantes = participantes,
+                            descripcion = descripcion,
+                            creador = perfilViewModel.email,
+                            canchaId = canchaId,
+                            nombreCancha = nombreCancha,
+                            latitud = latitud,
+                            longitud = longitud
+                        )
+
                         navController.popBackStack()
                     },
-                    onVolver = { navController.popBackStack() }
+                    onVolver = {
+                        navController.popBackStack()
+                    }
                 )
             }
+
             composable(
                 route = Screen.DetallePartido.route,
                 arguments = listOf(navArgument("partidoId") { type = NavType.IntType })
@@ -158,36 +206,88 @@ fun AppNavigation() {
                 )
             }
 
-            // 🏟 CANCHAS (listado público — todos pueden ver)
+            composable(Screen.MisPartidos.route) {
+                MisPartidosScreen(
+                    emailUsuario = perfilViewModel.email,
+                    partidoViewModel = partidoViewModel,
+                    onCrearPartido = {
+                        navController.navigate(Screen.CrearPartido.route)
+                    },
+                    onAdministrarPartido = { id ->
+                        navController.navigate(Screen.DetallePartido.createRoute(id))
+                    },
+                    onVolver = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            // 🏟 CANCHAS (listado público)
             composable(Screen.Canchas.route) {
                 CanchasScreen(
                     canchas       = canchaViewModel.uiState.canchas,
                     onSubirCancha = { navController.navigate(Screen.CrearCancha.route) },
-                    onVerDetalle  = { /* futuro: DetalleCancha pública */ }
+                    onVerDetalle  = { id -> navController.navigate(Screen.DetalleCancha.createRoute(id)) }
                 )
             }
 
-            // ➕ CREAR CANCHA — pasa el email del usuario como propietario
-            composable(Screen.CrearCancha.route) {
-                CrearCanchaScreen(
-                    onCrearCancha = { nombre, ubicacion, descripcion, precio, telefono, apertura, cierre ->
-                        canchaViewModel.crearCancha(
-                            nombre          = nombre,
-                            ubicacion       = ubicacion,
-                            descripcion     = descripcion,
-                            precio          = precio,
-                            telefono        = telefono,
-                            horarioApertura = apertura,
-                            horarioCierre   = cierre,
-                            propietario     = perfilViewModel.email   // ← email real del usuario
-                        )
+            // 🏟 DETALLE DE CANCHA PÚBLICA
+            composable(
+                route = Screen.DetalleCancha.route,
+                arguments = listOf(navArgument("canchaId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val canchaId = backStackEntry.arguments?.getInt("canchaId")
+                val cancha   = canchaViewModel.uiState.canchas.find { it.id == canchaId }
+
+                DetalleCanchaScreen(
+                    cancha = cancha,
+                    turnosReservados = listOf("19:00", "21:00"),
+                    onReservarTurno = { idCancha, hora ->
                         navController.popBackStack()
                     },
                     onVolver = { navController.popBackStack() }
                 )
             }
 
-            // 🏠 MIS CANCHAS — pasa el ViewModel completo para reactividad
+            // ➕ CREAR CANCHA
+            // ➕ CREAR CANCHA
+            composable(Screen.CrearCancha.route) {
+                CrearCanchaScreen(
+                    onCrearCancha = {
+                            nombre,
+                            ubicacion,
+                            descripcion,
+                            precio,
+                            telefono,
+                            apertura,
+                            cierre,
+                            horariosDetallados,
+                            latitud,
+                            longitud ->
+
+                        canchaViewModel.crearCancha(
+                            nombre = nombre,
+                            ubicacion = ubicacion,
+                            descripcion = descripcion,
+                            precio = precio,
+                            telefono = telefono,
+                            horarioApertura = apertura,
+                            horarioCierre = cierre,
+                            horariosDetallados = horariosDetallados,
+                            propietario = perfilViewModel.email,
+                            latitud = latitud,
+                            longitud = longitud
+                        )
+
+                        navController.popBackStack()
+                    },
+                    onVolver = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            // 🏠 MIS CANCHAS
             composable(Screen.MisCanchas.route) {
                 MisCanchasScreen(
                     emailUsuario        = perfilViewModel.email,
@@ -198,7 +298,7 @@ fun AppNavigation() {
                 )
             }
 
-            // ⚙️ ADMINISTRAR UNA CANCHA — pasa el ViewModel completo para reactividad
+            // ⚙️ ADMINISTRAR UNA CANCHA
             composable(
                 route     = Screen.AdminCancha.route,
                 arguments = listOf(navArgument("canchaId") { type = NavType.IntType })

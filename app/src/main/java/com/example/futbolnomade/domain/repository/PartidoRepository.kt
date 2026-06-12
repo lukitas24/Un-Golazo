@@ -10,6 +10,8 @@ interface PartidoRepository {
 
     fun crearPartido(partido: Partido)
 
+    fun eliminarPartido(id: Int)
+
     fun anotarseAPartido(
         partidoId: Int,
         usuario: String
@@ -19,6 +21,4 @@ interface PartidoRepository {
         partidoId: Int,
         usuario: String
     ): Boolean
-
-
 }
