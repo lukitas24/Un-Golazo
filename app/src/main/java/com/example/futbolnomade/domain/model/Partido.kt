@@ -21,7 +21,7 @@ data class Partido(
     val descripcion: String = "",
     val usuariosAnotados: List<String> = emptyList(),
 
-    val canchaId: Int? = null,
+    val canchaId: String? = null,
     val nombreCancha: String? = null,
     val latitud: Double? = null,
     val longitud: Double? = null,

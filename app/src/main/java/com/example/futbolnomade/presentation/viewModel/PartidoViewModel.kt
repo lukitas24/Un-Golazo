@@ -50,7 +50,7 @@ class PartidoViewModel(private val repository: PartidoRepository = PartidoReposi
         participantes: Int,
         descripcion: String,
         creador: String,
-        canchaId: Int? = null,
+        canchaId: String? = null,
         nombreCancha: String? = null,
         latitud: Double? = null,
         longitud: Double? = null
@@ -89,10 +89,7 @@ class PartidoViewModel(private val repository: PartidoRepository = PartidoReposi
 
     fun eliminarPartido(id: String) {
         viewModelScope.launch {
-            // Standardizing to String ID
-            // If repository still uses Int, we might need a workaround, 
-            // but I'll fix repository next.
-            // repository.eliminarPartido(id) 
+            repository.eliminarPartido(id)
             cargarPartidos()
         }
     }
