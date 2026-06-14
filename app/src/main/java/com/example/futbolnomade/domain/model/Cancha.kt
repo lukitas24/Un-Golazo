@@ -1,9 +1,9 @@
 package com.example.futbolnomade.domain.model
 
 data class HorarioDisponible(
-    val dia: String,
-    val horaApertura: String,
-    val horaCierre: String
+    val dia: String = "",
+    val horaApertura: String = "",
+    val horaCierre: String = ""
 )
 
 data class Cancha(

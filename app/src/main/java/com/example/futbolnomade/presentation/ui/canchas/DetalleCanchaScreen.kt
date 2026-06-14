@@ -359,7 +359,7 @@ fun DetalleCanchaScreen(
                 }
             }
 
-            Box(modifier = Modifier.heightIn(max = 280.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (listadoTurnosDia.isEmpty()) {
                     Text(
                         text = "El complejo está cerrado este día.",
@@ -368,81 +368,85 @@ fun DetalleCanchaScreen(
                         modifier = Modifier.padding(vertical = 16.dp)
                     )
                 } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(listadoTurnosDia) { hora ->
-                            val partesHora = hora.split(":")
-                            val horaTurno = partesHora.getOrNull(0)?.toIntOrNull() ?: 0
-                            val minutoTurno = partesHora.getOrNull(1)?.toIntOrNull() ?: 0
+                    val filas = listadoTurnosDia.chunked(3)
+                    filas.forEach { fila ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            fila.forEach { hora ->
+                                val partesHora = hora.split(":")
+                                val horaTurno = partesHora.getOrNull(0)?.toIntOrNull() ?: 0
+                                val minutoTurno = partesHora.getOrNull(1)?.toIntOrNull() ?: 0
 
-                            val turnoYaPaso = esHoy && (
-                                    horaTurno < ahora.get(Calendar.HOUR_OF_DAY) ||
-                                            (
-                                                    horaTurno == ahora.get(Calendar.HOUR_OF_DAY) &&
-                                                            minutoTurno <= ahora.get(Calendar.MINUTE)
-                                                    )
-                                    )
+                                val turnoYaPaso = esHoy && (
+                                        horaTurno < ahora.get(Calendar.HOUR_OF_DAY) ||
+                                                (
+                                                        horaTurno == ahora.get(Calendar.HOUR_OF_DAY) &&
+                                                                minutoTurno <= ahora.get(Calendar.MINUTE)
+                                                        )
+                                        )
 
-                            val yaReservado = turnosReservados.contains(hora)
-                            val deshabilitado = yaReservado || turnoYaPaso
-                            val esElSeleccionado = turnoSeleccionado == hora
+                                val yaReservado = turnosReservados.contains(hora)
+                                val deshabilitado = yaReservado || turnoYaPaso
+                                val esElSeleccionado = turnoSeleccionado == hora
 
-                            val colorFondoCaja = when {
-                                deshabilitado -> ColorCampo.copy(alpha = 0.4f)
-                                esElSeleccionado -> ColorVerde
-                                else -> ColorCampo
-                            }
-
-                            val colorTextoCaja = when {
-                                deshabilitado -> ColorSub.copy(alpha = 0.4f)
-                                esElSeleccionado -> Color.Black
-                                else -> ColorTexto
-                            }
-
-                            val colorBordeCaja = when {
-                                esElSeleccionado -> ColorVerde
-                                deshabilitado -> ColorBorde.copy(alpha = 0.3f)
-                                else -> ColorBorde
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(colorFondoCaja, shape = RoundedCornerShape(8.dp))
-                                    .border(1.dp, colorBordeCaja, RoundedCornerShape(8.dp))
-                                    .clickable(enabled = !deshabilitado) {
-                                        turnoSeleccionado =
-                                            if (esElSeleccionado) null else hora
-                                    }
-                                    .padding(vertical = 12.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        text = hora,
-                                        color = colorTextoCaja,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-
-                                    Text(
-                                        text = when {
-                                            yaReservado -> "Ocupado"
-                                            turnoYaPaso -> "Pasó"
-                                            else -> "Disponible"
-                                        },
-                                        color = if (esElSeleccionado) {
-                                            Color.Black.copy(alpha = 0.7f)
-                                        } else {
-                                            ColorSub.copy(alpha = 0.8f)
-                                        },
-                                        fontSize = 10.sp
-                                    )
+                                val colorFondoCaja = when {
+                                    deshabilitado -> ColorCampo.copy(alpha = 0.4f)
+                                    esElSeleccionado -> ColorVerde
+                                    else -> ColorCampo
                                 }
+
+                                val colorTextoCaja = when {
+                                    deshabilitado -> ColorSub.copy(alpha = 0.4f)
+                                    esElSeleccionado -> Color.Black
+                                    else -> ColorTexto
+                                }
+
+                                val colorBordeCaja = when {
+                                    esElSeleccionado -> ColorVerde
+                                    deshabilitado -> ColorBorde.copy(alpha = 0.3f)
+                                    else -> ColorBorde
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .background(colorFondoCaja, shape = RoundedCornerShape(8.dp))
+                                        .border(1.dp, colorBordeCaja, RoundedCornerShape(8.dp))
+                                        .clickable(enabled = !deshabilitado) {
+                                            turnoSeleccionado =
+                                                if (esElSeleccionado) null else hora
+                                        }
+                                        .padding(vertical = 12.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(
+                                            text = hora,
+                                            color = colorTextoCaja,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+
+                                        Text(
+                                            text = when {
+                                                yaReservado -> "Ocupado"
+                                                turnoYaPaso -> "Pasó"
+                                                else -> "Disponible"
+                                            },
+                                            color = if (esElSeleccionado) {
+                                                Color.Black.copy(alpha = 0.7f)
+                                            } else {
+                                                ColorSub.copy(alpha = 0.8f)
+                                            },
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                }
+                            }
+                            repeat(3 - fila.size) {
+                                Spacer(Modifier.weight(1f))
                             }
                         }
                     }

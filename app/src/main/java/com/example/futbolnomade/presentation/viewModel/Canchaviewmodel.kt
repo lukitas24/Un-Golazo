@@ -51,7 +51,7 @@ class CanchaViewModel(
         viewModelScope.launch {
             try {
                 val nuevaCancha = Cancha(
-                    id = "", // Firebase will generate it
+                    id = "",
                     nombre = nombre,
                     ubicacion = ubicacion,
                     descripcion = descripcion,
@@ -66,9 +66,7 @@ class CanchaViewModel(
                     longitud = longitud,
                     horarios = horariosDetallados
                 )
-
                 repository.guardarCancha(nuevaCancha)
-
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -105,25 +103,18 @@ class CanchaViewModel(
                 latitud = latitud ?: canchaActual.latitud,
                 longitud = longitud ?: canchaActual.longitud
             )
-
             repository.guardarCancha(canchaActualizada)
         }
     }
 
-    fun agregarHorario(
-        canchaId: String,
-        horario: HorarioDisponible
-    ) {
+    fun agregarHorario(canchaId: String, horario: HorarioDisponible) {
         viewModelScope.launch {
             val cancha = uiState.canchas.find { it.id == canchaId } ?: return@launch
             repository.guardarCancha(cancha.copy(horarios = cancha.horarios + horario))
         }
     }
 
-    fun eliminarHorario(
-        canchaId: String,
-        horario: HorarioDisponible
-    ) {
+    fun eliminarHorario(canchaId: String, horario: HorarioDisponible) {
         viewModelScope.launch {
             val cancha = uiState.canchas.find { it.id == canchaId } ?: return@launch
             repository.guardarCancha(cancha.copy(horarios = cancha.horarios - horario))
@@ -131,7 +122,7 @@ class CanchaViewModel(
     }
 
     fun misCanchas(emailPropietario: String): List<Cancha> {
-        return uiState.canchas.filter { it.propietario == emailPropietario }
+        return uiState.canchas.filter { it.propietario.lowercase() == emailPropietario.lowercase() }
     }
 
     fun getCanchaById(id: String): Cancha? {

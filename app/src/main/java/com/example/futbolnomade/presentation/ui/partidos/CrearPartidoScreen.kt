@@ -80,7 +80,7 @@ fun CrearPartidoScreen(
         dificultad: String,
         participantes: Int,
         descripcion: String,
-        canchaId: Int?,
+        canchaId: String?,
         nombreCancha: String?,
         latitud: Double?,
         longitud: Double?
@@ -790,7 +790,7 @@ fun CrearPartidoScreen(
                             dificultad.trim(),
                             participantesInt,
                             descripcion.trim(),
-                            cancha?.id as Int?,
+                            cancha?.id,
                             cancha?.nombre,
                             if (modoUbicacion == ModoUbicacion.CANCHA_APP) {
                                 cancha?.latitud
@@ -974,76 +974,81 @@ private fun SelectorTurnoCancha(
             style = MaterialTheme.typography.bodySmall
         )
     } else {
-        Box(modifier = Modifier.heightIn(max = 280.dp)) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(turnosDelDia) { hora ->
-                    val partesHora = hora.split(":")
-                    val horaTurno = partesHora.getOrNull(0)?.toIntOrNull() ?: 0
-                    val minutoTurno = partesHora.getOrNull(1)?.toIntOrNull() ?: 0
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            val filas = turnosDelDia.chunked(3)
+            filas.forEach { fila ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    fila.forEach { hora ->
+                        val partesHora = hora.split(":")
+                        val horaTurno = partesHora.getOrNull(0)?.toIntOrNull() ?: 0
+                        val minutoTurno = partesHora.getOrNull(1)?.toIntOrNull() ?: 0
 
-                    val turnoYaPaso = esHoy && (
-                            horaTurno < ahora.get(Calendar.HOUR_OF_DAY) ||
-                                    (
-                                            horaTurno == ahora.get(Calendar.HOUR_OF_DAY) &&
-                                                    minutoTurno <= ahora.get(Calendar.MINUTE)
-                                            )
-                            )
+                        val turnoYaPaso = esHoy && (
+                                horaTurno < ahora.get(Calendar.HOUR_OF_DAY) ||
+                                        (
+                                                horaTurno == ahora.get(Calendar.HOUR_OF_DAY) &&
+                                                        minutoTurno <= ahora.get(Calendar.MINUTE)
+                                                )
+                                )
 
-                    val esElSeleccionado = turnoSeleccionado == hora
-                    val deshabilitado = turnoYaPaso
+                        val esElSeleccionado = turnoSeleccionado == hora
+                        val deshabilitado = turnoYaPaso
 
-                    val colorFondoCaja = when {
-                        deshabilitado -> GrisCampos.copy(alpha = 0.4f)
-                        esElSeleccionado -> VerdeMetalico
-                        else -> GrisCampos
-                    }
-
-                    val colorTextoCaja = when {
-                        deshabilitado -> TextoSecundario.copy(alpha = 0.4f)
-                        esElSeleccionado -> Color.Black
-                        else -> TextoClaro
-                    }
-
-                    val colorBordeCaja = when {
-                        esElSeleccionado -> VerdeMetalico
-                        deshabilitado -> GrisBorde.copy(alpha = 0.3f)
-                        else -> GrisBorde
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(colorFondoCaja, RoundedCornerShape(8.dp))
-                            .border(1.dp, colorBordeCaja, RoundedCornerShape(8.dp))
-                            .clickable(enabled = !deshabilitado) {
-                                onSeleccionarTurno(hora)
-                            }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = hora,
-                                color = colorTextoCaja,
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-
-                            Text(
-                                text = if (turnoYaPaso) "Pasó" else "Disponible",
-                                color = if (esElSeleccionado) {
-                                    Color.Black.copy(alpha = 0.7f)
-                                } else {
-                                    TextoSecundario.copy(alpha = 0.8f)
-                                },
-                                style = MaterialTheme.typography.labelSmall
-                            )
+                        val colorFondoCaja = when {
+                            deshabilitado -> GrisCampos.copy(alpha = 0.4f)
+                            esElSeleccionado -> VerdeMetalico
+                            else -> GrisCampos
                         }
+
+                        val colorTextoCaja = when {
+                            deshabilitado -> TextoSecundario.copy(alpha = 0.4f)
+                            esElSeleccionado -> Color.Black
+                            else -> TextoClaro
+                        }
+
+                        val colorBordeCaja = when {
+                            esElSeleccionado -> VerdeMetalico
+                            deshabilitado -> GrisBorde.copy(alpha = 0.3f)
+                            else -> GrisBorde
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(colorFondoCaja, RoundedCornerShape(8.dp))
+                                .border(1.dp, colorBordeCaja, RoundedCornerShape(8.dp))
+                                .clickable(enabled = !deshabilitado) {
+                                    onSeleccionarTurno(hora)
+                                }
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = hora,
+                                    color = colorTextoCaja,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+
+                                Text(
+                                    text = if (turnoYaPaso) "Pasó" else "Disponible",
+                                    color = if (esElSeleccionado) {
+                                        Color.Black.copy(alpha = 0.7f)
+                                    } else {
+                                        TextoSecundario.copy(alpha = 0.8f)
+                                    },
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        }
+                    }
+                    // Completar la fila si tiene menos de 3 items
+                    repeat(3 - fila.size) {
+                        Spacer(Modifier.weight(1f))
                     }
                 }
             }
