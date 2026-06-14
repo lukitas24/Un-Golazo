@@ -107,4 +107,19 @@ class PartidoViewModel(private val repository: PartidoRepository = PartidoReposi
             cargarPartidos()
         }
     }
+    fun eliminarJugador(
+        partidoId: String,
+        jugadorAEliminar: String,
+        usuarioSolicitante: String
+    ) {
+        viewModelScope.launch {
+            repository.eliminarJugador(
+                partidoId = partidoId,
+                jugadorAEliminar = jugadorAEliminar,
+                usuarioSolicitante = usuarioSolicitante
+            )
+
+            cargarPartidos()
+        }
+    }
 }

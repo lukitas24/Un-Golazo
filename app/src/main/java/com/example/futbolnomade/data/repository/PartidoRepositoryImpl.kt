@@ -24,11 +24,35 @@ class PartidoRepositoryImpl(
         remoteDataSource.eliminarPartido(id)
     }
 
-    override suspend fun anotarseAPartido(partidoId: String, usuario: String): Boolean {
-        return remoteDataSource.anotarseAPartido(partidoId, usuario)
+    override suspend fun anotarseAPartido(
+        partidoId: String,
+        usuario: String
+    ): Boolean {
+        return remoteDataSource.anotarseAPartido(
+            partidoId = partidoId,
+            usuario = usuario
+        )
     }
 
-    override suspend fun cancelarInscripcion(partidoId: String, usuario: String): Boolean {
-        return remoteDataSource.cancelarInscripcion(partidoId, usuario)
+    override suspend fun cancelarInscripcion(
+        partidoId: String,
+        usuario: String
+    ): Boolean {
+        return remoteDataSource.cancelarInscripcion(
+            partidoId = partidoId,
+            usuario = usuario
+        )
+    }
+
+    override suspend fun eliminarJugador(
+        partidoId: String,
+        jugadorAEliminar: String,
+        usuarioSolicitante: String
+    ): Boolean {
+        return remoteDataSource.eliminarJugador(
+            partidoId = partidoId,
+            jugadorAEliminar = jugadorAEliminar,
+            usuarioSolicitante = usuarioSolicitante
+        )
     }
 }

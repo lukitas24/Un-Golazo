@@ -202,11 +202,39 @@ fun AppNavigation() {
                 val partidoId = backStackEntry.arguments?.getString("partidoId")
                 val partido   = partidoViewModel.uiState.partidos.find { it.id == partidoId }
                 DetallePartidoScreen(
-                    partido               = partido,
-                    usuarioActual         = authViewModel.usuarioActual?.email ?: "invitado",
-                    onAnotarse            = { id, u -> partidoViewModel.anotarseAPartido(id, u) },
-                    onCancelarInscripcion = { id, u -> partidoViewModel.cancelarInscripcion(id, u) },
-                    onVolver              = { navController.popBackStack() }
+                    partido = partido,
+                    usuarioActual = perfilViewModel.email,
+
+                    onAnotarse = { id, usuario ->
+                        partidoViewModel.anotarseAPartido(
+                            partidoId = id,
+                            usuario = usuario
+                        )
+                    },
+
+                    onCancelarInscripcion = { id, usuario ->
+                        partidoViewModel.cancelarInscripcion(
+                            partidoId = id,
+                            usuario = usuario
+                        )
+                    },
+
+                    onEliminarJugador = { partidoId, jugador ->
+                        partidoViewModel.eliminarJugador(
+                            partidoId = partidoId,
+                            jugadorAEliminar = jugador,
+                            usuarioSolicitante = perfilViewModel.email
+                        )
+                    },
+
+                    onEliminarPartido = { id ->
+                        partidoViewModel.eliminarPartido(id)
+                        navController.popBackStack()
+                    },
+
+                    onVolver = {
+                        navController.popBackStack()
+                    }
                 )
             }
 

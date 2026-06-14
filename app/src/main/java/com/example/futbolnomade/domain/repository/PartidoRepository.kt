@@ -17,6 +17,12 @@ interface PartidoRepository {
         usuario: String
     ): Boolean
 
+    suspend fun eliminarJugador(
+        partidoId: String,
+        jugadorAEliminar: String,
+        usuarioSolicitante: String
+    ): Boolean
+
     suspend fun cancelarInscripcion(
         partidoId: String,
         usuario: String
