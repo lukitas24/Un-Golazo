@@ -14,6 +14,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.futbolnomade.presentation.ui.AcercaScreen
+import com.example.futbolnomade.presentation.ui.CalendarScreen
 import com.example.futbolnomade.presentation.ui.ElementosScreen
 import com.example.futbolnomade.presentation.ui.HomeScreen
 import com.example.futbolnomade.presentation.ui.LoginScreen
@@ -354,7 +355,14 @@ fun AppNavigation() {
             }
 
             composable(Screen.Search.route)   { /* TODO: SearchScreen() */ }
-            composable(Screen.Calendar.route) { /* TODO: CalendarScreen() */ }
+            composable(Screen.Calendar.route) {
+                CalendarScreen(
+                    emailUsuario = perfilViewModel.email,
+                    partidoViewModel = partidoViewModel,
+                    onVerDetallePartido = { id -> navController.navigate(Screen.DetallePartido.createRoute(id)) },
+                    onVolver = { navController.popBackStack() }
+                )
+            }
 
             // 👤 PERFIL
             composable(Screen.Perfil.route) {
