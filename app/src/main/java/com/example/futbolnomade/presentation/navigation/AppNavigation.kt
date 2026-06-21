@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import com.example.futbolnomade.presentation.ui.AcercaScreen
 import com.example.futbolnomade.presentation.ui.CalendarScreen
 import com.example.futbolnomade.presentation.ui.ElementosScreen
@@ -198,10 +199,34 @@ fun AppNavigation() {
 
             composable(
                 route = Screen.DetallePartido.route,
-                arguments = listOf(navArgument("partidoId") { type = NavType.StringType })
+                arguments = listOf(
+                    navArgument("partidoId") {
+                        type = NavType.StringType
+                    }
+                ),
+                deepLinks = listOf(
+                    navDeepLink {
+                        uriPattern = "futbolnomade://partido/{partidoId}"
+                    }
+                )
             ) { backStackEntry ->
-                val partidoId = backStackEntry.arguments?.getString("partidoId")
-                val partido   = partidoViewModel.uiState.partidos.find { it.id == partidoId }
+
+                val partidoId =
+                    backStackEntry.arguments?.getString("partidoId")
+                        ?: return@composable
+
+                /*
+                 * Esto es importante cuando la app se abre directamente
+                 * desde el enlace y todavía no cargó la lista de partidos.
+                 */
+                LaunchedEffect(partidoId) {
+                    partidoViewModel.cargarPartidos()
+                }
+
+                val partido = partidoViewModel.uiState.partidos.find {
+                    it.id == partidoId
+                }
+
                 DetallePartidoScreen(
                     partido = partido,
                     usuarioActual = perfilViewModel.email,
@@ -220,9 +245,9 @@ fun AppNavigation() {
                         )
                     },
 
-                    onEliminarJugador = { partidoId, jugador ->
+                    onEliminarJugador = { id, jugador ->
                         partidoViewModel.eliminarJugador(
-                            partidoId = partidoId,
+                            partidoId = id,
                             jugadorAEliminar = jugador,
                             usuarioSolicitante = perfilViewModel.email
                         )
@@ -383,6 +408,8 @@ fun AppNavigation() {
                     }
                 )
             }
+
+
 
             // ✏️ EDITAR PERFIL
             composable(Screen.EditarPerfil.route) {

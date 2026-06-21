@@ -36,7 +36,9 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
-
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 private val FondoOscuro = Color(0xFF202020)
 private val VerdeMetalico = Color(0xFF82A820)
 private val GrisContenedor = Color(0xFF2E2E2E)
@@ -91,6 +93,8 @@ fun DetallePartidoScreen(
     val yaEstaAnotado = partido.usuariosAnotados.contains(usuarioActual)
     val partidoLleno =
         partido.participantesActuales >= partido.participantesMaximos
+
+    val context = LocalContext.current
 
     var jugadorAEliminar by remember {
         mutableStateOf<String?>(null)
@@ -512,6 +516,59 @@ fun DetallePartidoScreen(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
+        Button(
+            onClick = {
+                val enlacePartido =
+                    "futbolnomade://partido/${Uri.encode(partido.id)}"
+
+                val intentCompartir = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+
+                    putExtra(
+                        Intent.EXTRA_SUBJECT,
+                        "Te invito a jugar un partido"
+                    )
+
+                    putExtra(
+                        Intent.EXTRA_TEXT,
+                        """
+                ⚽ Te invito a jugar "${partido.titulo}"
+                
+                📅 ${partido.fecha}
+                🕒 ${partido.horario} hs
+                📍 ${partido.nombreCancha ?: partido.ubicacion}
+                
+                Abrí el partido desde acá:
+                $enlacePartido
+                """.trimIndent()
+                    )
+                }
+
+                context.startActivity(
+                    Intent.createChooser(
+                        intentCompartir,
+                        "Compartir partido"
+                    )
+                )
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = VerdeMetalico
+            ),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+        ) {
+            Text(
+                text = "Compartir partido",
+                color = Color.Black,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         OutlinedButton(
             onClick = onVolver,
             shape = RoundedCornerShape(8.dp),
@@ -634,4 +691,3 @@ fun DetallePartidoScreen(
         )
     }
 }
-
