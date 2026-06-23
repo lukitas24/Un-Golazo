@@ -42,7 +42,8 @@ import androidx.compose.ui.unit.sp
 import com.example.futbolnomade.domain.model.EstadoPartido
 import com.example.futbolnomade.domain.model.Partido
 import com.example.futbolnomade.presentation.viewModel.PartidoViewModel
-
+import com.example.futbolnomade.domain.model.puedeValorarse
+import com.example.futbolnomade.presentation.viewModel.ValoracionViewModel
 private val ColorFondo    = Color(0xFF1A1A1A)
 private val ColorTarjeta  = Color(0xFF242424)
 private val ColorBorde    = Color(0xFF2E2E2E)
@@ -55,12 +56,33 @@ private val ColorRojo     = Color(0xFFE53935)
 fun MisPartidosScreen(
     emailUsuario: String,
     partidoViewModel: PartidoViewModel,
+    valoracionViewModel: ValoracionViewModel,
     onCrearPartido: () -> Unit,
     onAdministrarPartido: (String) -> Unit,
+    onValorarPartido: (String) -> Unit,
     onVolver: () -> Unit
 ) {
-    val misPartidos = partidoViewModel.misPartidos(emailUsuario)
+    val misPartidos =
+        partidoViewModel
+            .partidosDelUsuario(emailUsuario)
 
+    val cantidadPendientes =
+        misPartidos.count { partido ->
+            partido.puedeValorarse() &&
+                    !valoracionViewModel.yaValoro(
+                        partido.id,
+                        emailUsuario
+                    )
+        }
+
+    val partidosOrdenados =
+        misPartidos.sortedByDescending { partido ->
+            partido.puedeValorarse() &&
+                    !valoracionViewModel.yaValoro(
+                        partido.id,
+                        emailUsuario
+                    )
+        }
     var confirmarEliminarId by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
@@ -144,13 +166,54 @@ fun MisPartidosScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(misPartidos, key = { it.id }) { partido ->
-                    CardMiPartido(
-                        partido = partido,
-                        onAdministrar = { onAdministrarPartido(partido.id) },
-                        onSolicitarEliminar = { confirmarEliminarId = partido.id }
-                    )
+                if (cantidadPendientes > 0) {
+                    item {
+                        Surface(
+                            color = ColorVerde.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text =
+                                    "Tenés $cantidadPendientes partido(s) pendiente(s) de valorar",
+                                color = ColorVerde,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(14.dp)
+                            )
+                        }
+                    }
                 }
+                items(
+                        partidosOrdenados,
+                key = { it.id }
+                ) { partido ->
+
+                val valoracionPendiente =
+                    partido.puedeValorarse() &&
+                            !valoracionViewModel.yaValoro(
+                                partido.id,
+                                emailUsuario
+                            )
+
+                CardMiPartido(
+                    partido = partido,
+                    esCreador =
+                        partido.creador == emailUsuario,
+                    valoracionPendiente =
+                        valoracionPendiente,
+
+                    onAdministrar = {
+                        onAdministrarPartido(partido.id)
+                    },
+
+                    onValorar = {
+                        onValorarPartido(partido.id)
+                    },
+
+                    onSolicitarEliminar = {
+                        confirmarEliminarId = partido.id
+                    }
+                )
+            }
 
                 item {
                     Spacer(Modifier.height(80.dp))
@@ -215,7 +278,10 @@ fun MisPartidosScreen(
 @Composable
 private fun CardMiPartido(
     partido: Partido,
+    esCreador: Boolean,
+    valoracionPendiente: Boolean,
     onAdministrar: () -> Unit,
+    onValorar: () -> Unit,
     onSolicitarEliminar: () -> Unit
 ) {
     val cupoCompleto = partido.participantesActuales >= partido.participantesMaximos
@@ -230,67 +296,68 @@ private fun CardMiPartido(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement =
+                Arrangement.SpaceBetween,
+            verticalAlignment =
+                Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(ColorVerde.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.SportsSoccer,
-                    contentDescription = null,
-                    tint = ColorVerde,
-                    modifier = Modifier.size(26.dp)
-                )
-            }
-
-            Spacer(Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = partido.titulo,
-                    color = ColorTexto,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
-
-                Spacer(Modifier.height(2.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            if (esCreador) {
+                TextButton(
+                    onClick = onSolicitarEliminar
+                ) {
                     Icon(
-                        Icons.Default.Place,
+                        Icons.Default.Delete,
                         contentDescription = null,
-                        tint = ColorSubtexto,
-                        modifier = Modifier.size(12.dp)
+                        tint = ColorRojo,
+                        modifier = Modifier.size(16.dp)
                     )
 
-                    Spacer(Modifier.width(3.dp))
+                    Spacer(Modifier.width(4.dp))
 
                     Text(
-                        text = partido.ubicacion,
-                        color = ColorSubtexto,
-                        fontSize = 12.sp
+                        text = "Eliminar",
+                        color = ColorRojo,
+                        fontSize = 13.sp
                     )
                 }
+            } else {
+                Spacer(Modifier.width(1.dp))
             }
 
-            val colorEstado = colorEstadoPartido(partido.estado)
+            Row {
+                if (valoracionPendiente) {
+                    TextButton(onClick = onValorar) {
+                        Text(
+                            text = "Valorar",
+                            color = ColorVerde,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
 
-            Surface(
-                color = colorEstado.copy(alpha = 0.18f),
-                shape = RoundedCornerShape(20.dp)
-            ) {
-                Text(
-                    text = textoEstadoPartido(partido.estado),
-                    color = colorEstado,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                )
+                TextButton(onClick = onAdministrar) {
+                    Text(
+                        text = if (esCreador) {
+                            "Administrar"
+                        } else {
+                            "Ver detalle"
+                        },
+                        color = ColorVerde,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    Spacer(Modifier.width(2.dp))
+
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = ColorVerde,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
 

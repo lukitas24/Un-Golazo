@@ -12,6 +12,10 @@ data class Partido(
     val titulo: String = "",
     val horario: String = "",
     val fecha: String = "",
+
+    // Momento exacto en el que comienza el partido.
+    val fechaHoraInicio: Long = 0L,
+
     val ubicacion: String = "",
     val dificultad: String = "",
     val participantesActuales: Int = 0,

@@ -86,4 +86,55 @@ class PartidoRemoteDataSource {
             false
         }
     }
+
+    suspend fun eliminarJugador(
+        partidoId: String,
+        jugadorAEliminar: String,
+        usuarioSolicitante: String
+    ): Boolean {
+        return try {
+            val docRef = partidosCollection.document(partidoId)
+
+            db.runTransaction { transaction ->
+                val snapshot = transaction.get(docRef)
+
+                val partido = snapshot.toObject(Partido::class.java)
+                    ?: return@runTransaction false
+
+                // Solo el creador puede expulsar jugadores
+                if (partido.creador != usuarioSolicitante) {
+                    return@runTransaction false
+                }
+
+                // El jugador debe estar anotado
+                if (jugadorAEliminar !in partido.usuariosAnotados) {
+                    return@runTransaction false
+                }
+
+                // El creador no puede eliminarse a sí mismo
+                if (jugadorAEliminar == partido.creador) {
+                    return@runTransaction false
+                }
+
+                val nuevosUsuarios =
+                    partido.usuariosAnotados - jugadorAEliminar
+
+                val nuevaCantidad =
+                    (partido.participantesActuales - 1).coerceAtLeast(1)
+
+                transaction.update(
+                    docRef,
+                    mapOf(
+                        "usuariosAnotados" to nuevosUsuarios,
+                        "participantesActuales" to nuevaCantidad
+                    )
+                )
+
+                true
+            }.await()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
 }
