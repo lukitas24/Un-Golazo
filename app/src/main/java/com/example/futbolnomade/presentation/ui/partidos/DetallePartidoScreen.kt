@@ -40,6 +40,7 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.material3.Surface
 import androidx.compose.ui.platform.LocalContext
 private val FondoOscuro = Color(0xFF202020)
 private val VerdeMetalico = Color(0xFF82A820)
