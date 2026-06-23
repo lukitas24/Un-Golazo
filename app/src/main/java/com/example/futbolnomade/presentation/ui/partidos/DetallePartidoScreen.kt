@@ -52,6 +52,9 @@ fun DetallePartidoScreen(
     onCancelarInscripcion: (String, String) -> Unit,
     onEliminarJugador: (String, String) -> Unit,
     onEliminarPartido: (String) -> Unit,
+    puedeValorar: Boolean,
+    yaValoro: Boolean,
+    onValorarPartido: (String) ->Unit,
     onVolver: () -> Unit
 ) {
     if (partido == null) {
@@ -514,6 +517,41 @@ fun DetallePartidoScreen(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        if (puedeValorar && !yaValoro) {
+            Button(
+                onClick = {
+                    onValorarPartido(partido.id)
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = VerdeMetalico
+                ),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Text(
+                    text = "Valorar partido",
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        if (yaValoro) {
+            Text(
+                text = "✓ Ya valoraste este partido",
+                color = VerdeMetalico,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp)
+            )
         }
 
         Button(

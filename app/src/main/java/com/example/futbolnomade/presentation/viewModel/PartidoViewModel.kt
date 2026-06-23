@@ -11,7 +11,7 @@ import com.example.futbolnomade.domain.model.Partido
 import com.example.futbolnomade.domain.repository.PartidoRepository
 import com.example.futbolnomade.presentation.state.PartidoUiState
 import kotlinx.coroutines.launch
-
+import com.example.futbolnomade.domain.model.calcularFechaHoraInicioMillis
 class PartidoViewModel(private val repository: PartidoRepository = PartidoRepositoryImpl()) : ViewModel() {
 
     var uiState by mutableStateOf(PartidoUiState())
@@ -62,11 +62,18 @@ class PartidoViewModel(private val repository: PartidoRepository = PartidoReposi
                 EstadoPartido.PENDIENTE_RESERVA
             }
 
+            val fechaHoraInicio =
+                calcularFechaHoraInicioMillis(
+                    fecha = fecha,
+                    horario = horario
+                )
+
             val nuevoPartido = Partido(
                 id = System.currentTimeMillis().toString(),
                 titulo = titulo,
                 horario = horario,
                 fecha = fecha,
+                fechaHoraInicio = fechaHoraInicio,
                 ubicacion = ubicacion,
                 dificultad = dificultad,
                 participantesActuales = 1,
@@ -122,4 +129,13 @@ class PartidoViewModel(private val repository: PartidoRepository = PartidoReposi
             cargarPartidos()
         }
     }
+    fun partidosDelUsuario(
+        emailUsuario: String
+    ): List<Partido> {
+        return uiState.partidos.filter { partido ->
+            partido.creador == emailUsuario ||
+                    emailUsuario in partido.usuariosAnotados
+        }
+    }
+
 }

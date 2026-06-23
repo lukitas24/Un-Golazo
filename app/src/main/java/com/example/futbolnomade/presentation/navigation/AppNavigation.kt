@@ -38,7 +38,9 @@ import com.example.futbolnomade.presentation.viewModel.PartidoViewModel
 import com.example.futbolnomade.presentation.viewModel.PerfilViewModel
 import com.example.futbolnomade.presentation.ui.CercaDeMiScreen
 import com.example.futbolnomade.presentation.ui.partidos.MisPartidosScreen
-
+import com.example.futbolnomade.domain.model.puedeValorarse
+import com.example.futbolnomade.presentation.ui.partidos.ValorarPartidoScreen
+import com.example.futbolnomade.presentation.viewModel.ValoracionViewModel
 private val rutasSinBottomBar = setOf(Screen.Login.route, Screen.Register.route)
 
 @Composable
@@ -53,6 +55,16 @@ fun AppNavigation() {
     val partidoViewModel: PartidoViewModel = viewModel()
     val canchaViewModel:  CanchaViewModel  = viewModel()
     val perfilViewModel:  PerfilViewModel  = viewModel()
+    val valoracionViewModel: ValoracionViewModel = viewModel()
+
+    LaunchedEffect(perfilViewModel.email) {
+        if (perfilViewModel.email.isNotBlank()) {
+            valoracionViewModel
+                .cargarValoracionesUsuario(
+                    perfilViewModel.email
+                )
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -227,6 +239,14 @@ fun AppNavigation() {
                     it.id == partidoId
                 }
 
+                val puedeValorar = partido?.puedeValorarse() ?: false
+                val yaValoro = partido?.let { partidoEncontrado ->
+                    valoracionViewModel.yaValoro(
+                        partidoId = partidoEncontrado.id,
+                        emailUsuario = perfilViewModel.email
+                    )
+                } ?: false
+
                 DetallePartidoScreen(
                     partido = partido,
                     usuarioActual = perfilViewModel.email,
@@ -249,13 +269,23 @@ fun AppNavigation() {
                         partidoViewModel.eliminarJugador(
                             partidoId = id,
                             jugadorAEliminar = jugador,
-                            usuarioSolicitante = perfilViewModel.email
+                            usuarioSolicitante =
+                                perfilViewModel.email
                         )
                     },
 
                     onEliminarPartido = { id ->
                         partidoViewModel.eliminarPartido(id)
                         navController.popBackStack()
+                    },
+
+                    puedeValorar = puedeValorar,
+                    yaValoro = yaValoro,
+
+                    onValorarPartido = { id ->
+                        navController.navigate(
+                            Screen.ValorarPartido.createRoute(id)
+                        )
                     },
 
                     onVolver = {
@@ -268,12 +298,26 @@ fun AppNavigation() {
                 MisPartidosScreen(
                     emailUsuario = perfilViewModel.email,
                     partidoViewModel = partidoViewModel,
+                    valoracionViewModel = valoracionViewModel,
+
                     onCrearPartido = {
-                        navController.navigate(Screen.CrearPartido.route)
+                        navController.navigate(
+                            Screen.CrearPartido.route
+                        )
                     },
+
                     onAdministrarPartido = { id ->
-                        navController.navigate(Screen.DetallePartido.createRoute(id))
+                        navController.navigate(
+                            Screen.DetallePartido.createRoute(id)
+                        )
                     },
+
+                    onValorarPartido = { id ->
+                        navController.navigate(
+                            Screen.ValorarPartido.createRoute(id)
+                        )
+                    },
+
                     onVolver = {
                         navController.popBackStack()
                     }
@@ -409,7 +453,51 @@ fun AppNavigation() {
                 )
             }
 
+            composable(
+                route = Screen.ValorarPartido.route,
+                arguments = listOf(
+                    navArgument("partidoId") {
+                        type = NavType.StringType
+                    }
+                )
+            ) { backStackEntry ->
 
+                val partidoId =
+                    backStackEntry.arguments
+                        ?.getString("partidoId")
+                        ?: return@composable
+
+                LaunchedEffect(partidoId) {
+                    partidoViewModel.cargarPartidos()
+                }
+
+                val partido =
+                    partidoViewModel.uiState.partidos.find {
+                        it.id == partidoId
+                    }
+
+                ValorarPartidoScreen(
+                    partido = partido,
+                    usuarioActual = perfilViewModel.email,
+                    guardando = valoracionViewModel.guardando,
+                    error = valoracionViewModel.error,
+
+                    onGuardar = { valoracion ->
+                        valoracionViewModel.guardarValoracion(
+                            valoracion = valoracion
+                        ) { guardada ->
+                            if (guardada) {
+                                navController.popBackStack()
+                            }
+                        }
+                    },
+
+                    onVolver = {
+                        valoracionViewModel.limpiarError()
+                        navController.popBackStack()
+                    }
+                )
+            }
 
             // ✏️ EDITAR PERFIL
             composable(Screen.EditarPerfil.route) {

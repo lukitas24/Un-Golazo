@@ -16,6 +16,7 @@ data class Cancha(
     val horarioApertura: String = "",
     val horarioCierre: String = "",
     val calificacion: Double = 0.0,
+    val cantidadValoraciones: Int  =0,
     val propietario: String = "",
     val disponible: Boolean = true,
 
