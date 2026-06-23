@@ -8,5 +8,6 @@ data class Reserva(
     val usuarioNombre: String = "",
     val fecha: String = "",
     val hora: String = "",
-    val estado: String = "Pendiente" // Pendiente, Confirmada, Cancelada
+    val estado: String = "Pendiente", // Pendiente, Confirmada, Rechazada, Cancelada
+    val partidoId: String? = null
 )

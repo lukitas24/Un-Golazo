@@ -24,6 +24,19 @@ class ReservaRemoteDataSource {
         awaitClose { listener.remove() }
     }
 
+    fun obtenerReservasPorCancha(canchaId: String): Flow<List<Reserva>> = callbackFlow {
+        val listener = reservasCollection
+            .whereEqualTo("canchaId", canchaId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) { close(error); return@addSnapshotListener }
+                val lista = snapshot?.documents?.mapNotNull {
+                    it.toObject(Reserva::class.java)?.copy(id = it.id)
+                } ?: emptyList()
+                trySend(lista)
+            }
+        awaitClose { listener.remove() }
+    }
+
     suspend fun crearReserva(reserva: Reserva) {
         try {
             val docRef = reservasCollection.document()
@@ -36,6 +49,14 @@ class ReservaRemoteDataSource {
     suspend fun cancelarReserva(reservaId: String) {
         try {
             reservasCollection.document(reservaId).update("estado", "Cancelada").await()
+        } catch (e: Exception) {
+            // Manejar error
+        }
+    }
+
+    suspend fun actualizarEstadoReserva(reservaId: String, nuevoEstado: String) {
+        try {
+            reservasCollection.document(reservaId).update("estado", nuevoEstado).await()
         } catch (e: Exception) {
             // Manejar error
         }

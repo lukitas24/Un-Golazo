@@ -31,6 +31,20 @@ class ReservaViewModel(
         }
     }
 
+    fun cargarReservasPorCancha(canchaId: String) {
+        viewModelScope.launch {
+            uiState = uiState.copy(isLoading = true)
+            repository.obtenerReservasPorCancha(canchaId).collect { lista ->
+                // Filtramos las anteriores de esta misma cancha para no duplicar ni mantener obsoletas
+                val otrasReservas = uiState.reservas.filter { it.canchaId != canchaId }
+                uiState = uiState.copy(
+                    reservas = (otrasReservas + lista).distinctBy { it.id },
+                    isLoading = false
+                )
+            }
+        }
+    }
+
     fun crearReserva(reserva: Reserva) {
         viewModelScope.launch {
             repository.crearReserva(reserva)
@@ -40,6 +54,12 @@ class ReservaViewModel(
     fun cancelarReserva(reservaId: String) {
         viewModelScope.launch {
             repository.cancelarReserva(reservaId)
+        }
+    }
+
+    fun responderReserva(reservaId: String, nuevoEstado: String) {
+        viewModelScope.launch {
+            repository.actualizarEstadoReserva(reservaId, nuevoEstado)
         }
     }
 }

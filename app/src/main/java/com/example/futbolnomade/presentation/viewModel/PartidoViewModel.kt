@@ -6,13 +6,19 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.futbolnomade.data.repository.PartidoRepositoryImpl
+import com.example.futbolnomade.data.repository.ReservaRepositoryImpl
 import com.example.futbolnomade.domain.model.EstadoPartido
 import com.example.futbolnomade.domain.model.Partido
+import com.example.futbolnomade.domain.model.Reserva
 import com.example.futbolnomade.domain.repository.PartidoRepository
+import com.example.futbolnomade.domain.repository.ReservaRepository
 import com.example.futbolnomade.presentation.state.PartidoUiState
 import kotlinx.coroutines.launch
 
-class PartidoViewModel(private val repository: PartidoRepository = PartidoRepositoryImpl()) : ViewModel() {
+class PartidoViewModel(
+    private val repository: PartidoRepository = PartidoRepositoryImpl(),
+    private val reservaRepository: ReservaRepository = ReservaRepositoryImpl()
+) : ViewModel() {
 
     var uiState by mutableStateOf(PartidoUiState())
         private set
@@ -53,17 +59,24 @@ class PartidoViewModel(private val repository: PartidoRepository = PartidoReposi
         canchaId: String? = null,
         nombreCancha: String? = null,
         latitud: Double? = null,
-        longitud: Double? = null
+        longitud: Double? = null,
+        propietarioCancha: String? = null
     ) {
         viewModelScope.launch {
+            val esDuenio = propietarioCancha?.lowercase() == creador.lowercase()
+
             val estadoInicial = if (canchaId == null) {
                 EstadoPartido.PUBLICADO
+            } else if (esDuenio) {
+                EstadoPartido.RESERVA_APROBADA
             } else {
                 EstadoPartido.PENDIENTE_RESERVA
             }
 
+            val partidoId = System.currentTimeMillis().toString()
+
             val nuevoPartido = Partido(
-                id = System.currentTimeMillis().toString(),
+                id = partidoId,
                 titulo = titulo,
                 horario = horario,
                 fecha = fecha,
@@ -83,6 +96,21 @@ class PartidoViewModel(private val repository: PartidoRepository = PartidoReposi
             )
 
             repository.crearPartido(nuevoPartido)
+
+            if (canchaId != null) {
+                val reserva = Reserva(
+                    canchaId = canchaId,
+                    canchaNombre = nombreCancha ?: "",
+                    usuarioId = creador,
+                    usuarioNombre = creador,
+                    fecha = fecha,
+                    hora = horario,
+                    estado = if (esDuenio) "Confirmada" else "Pendiente",
+                    partidoId = partidoId
+                )
+                reservaRepository.crearReserva(reserva)
+            }
+
             cargarPartidos()
         }
     }
@@ -104,6 +132,14 @@ class PartidoViewModel(private val repository: PartidoRepository = PartidoReposi
     fun cancelarInscripcion(partidoId: String, usuario: String) {
         viewModelScope.launch {
             repository.cancelarInscripcion(partidoId, usuario)
+            cargarPartidos()
+        }
+    }
+
+    fun actualizarEstadoPartido(partidoId: String, nuevoEstado: EstadoPartido) {
+        viewModelScope.launch {
+            val partido = uiState.partidos.find { it.id == partidoId } ?: return@launch
+            repository.crearPartido(partido.copy(estado = nuevoEstado)) // crearPartido asume que si el ID existe lo sobreescribe o usa set en Firestore
             cargarPartidos()
         }
     }
