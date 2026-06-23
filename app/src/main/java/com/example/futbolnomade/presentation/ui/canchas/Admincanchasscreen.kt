@@ -1,10 +1,12 @@
 package com.example.futbolnomade.presentation.ui.canchas
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -21,8 +23,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.futbolnomade.domain.model.EstadoPartido
 import com.example.futbolnomade.domain.model.HorarioDisponible
+import com.example.futbolnomade.domain.model.Reserva
 import com.example.futbolnomade.presentation.viewModel.CanchaViewModel
+import com.example.futbolnomade.presentation.viewModel.PartidoViewModel
+import com.example.futbolnomade.presentation.viewModel.ReservaViewModel
 import java.util.Locale
 
 private val ColorFondo    = Color(0xFF1A1A1A)
@@ -39,12 +45,20 @@ private val DIAS = listOf("Lunes","Martes","Miércoles","Jueves","Viernes","Sáb
 @Composable
 fun AdminCanchaScreen(
     canchaId: String,
-    canchaViewModel: CanchaViewModel,       // ← ViewModel completo
+    canchaViewModel: CanchaViewModel,
+    reservaViewModel: ReservaViewModel,
+    partidoViewModel: PartidoViewModel,
     onEliminarYVolver: () -> Unit,
     onVolver: () -> Unit
 ) {
     // Estado para controlar y forzar la recomposición de los horarios cuando mute el ViewModel
     var versionHorarios by remember { mutableStateOf(0) }
+
+    LaunchedEffect(canchaId) {
+        reservaViewModel.cargarReservasPorCancha(canchaId)
+    }
+
+    val reservas = reservaViewModel.uiState.reservas.filter { it.canchaId == canchaId && it.estado == "Pendiente" }
 
     // Trae la cancha de forma reactiva basándose en la versión actual
     val cancha = canchaViewModel.uiState.canchas.find { it.id == canchaId }
@@ -99,6 +113,37 @@ fun AdminCanchaScreen(
                 Text("Administrar cancha", color = ColorTexto, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Text(cancha.nombre, color = ColorSubtexto, fontSize = 12.sp)
             }
+        }
+
+        // ════════════════════════════════════════════════════════════════
+        // SECCIÓN: SOLICITUDES DE RESERVA
+        // ════════════════════════════════════════════════════════════════
+        if (reservas.isNotEmpty()) {
+            SeccionTitulo("Solicitudes pendientes (${reservas.size})", Icons.Default.Notifications, tintTitulo = ColorVerde)
+            
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                reservas.forEach { reserva ->
+                    CardReservaPendiente(
+                        reserva = reserva,
+                        onAceptar = {
+                            reservaViewModel.responderReserva(reserva.id, "Confirmada")
+                            reserva.partidoId?.let { pid ->
+                                partidoViewModel.actualizarEstadoPartido(pid, EstadoPartido.RESERVA_APROBADA)
+                            }
+                        },
+                        onRechazar = {
+                            reservaViewModel.responderReserva(reserva.id, "Rechazada")
+                            reserva.partidoId?.let { pid ->
+                                partidoViewModel.actualizarEstadoPartido(pid, EstadoPartido.RESERVA_RECHAZADA)
+                            }
+                        }
+                    )
+                }
+            }
+            Spacer(Modifier.height(16.dp))
         }
 
         // ════════════════════════════════════════════════════════════════
@@ -598,6 +643,59 @@ private fun FilaHorario(
             color = ColorSubtexto, fontSize = 13.sp, modifier = Modifier.weight(1f))
         IconButton(onClick = onEliminar, modifier = Modifier.size(32.dp)) {
             Icon(Icons.Default.Close, null, tint = ColorRojo, modifier = Modifier.size(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun CardReservaPendiente(
+    reserva: Reserva,
+    onAceptar: () -> Unit,
+    onRechazar: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = ColorTarjeta),
+        border = BorderStroke(1.dp, ColorVerde.copy(alpha = 0.3f)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier.size(36.dp).clip(CircleShape).background(ColorVerde.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Person, null, tint = ColorVerde, modifier = Modifier.size(20.dp))
+                }
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text(reserva.usuarioNombre, color = ColorTexto, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("${reserva.fecha} • ${reserva.hora} hs", color = ColorSubtexto, fontSize = 12.sp)
+                }
+            }
+            
+            Spacer(Modifier.height(12.dp))
+            
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = onRechazar,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorRojo),
+                    border = BorderStroke(1.dp, ColorRojo.copy(alpha = 0.5f))
+                ) {
+                    Text("Rechazar", fontSize = 13.sp)
+                }
+                
+                Button(
+                    onClick = onAceptar,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = ColorVerde)
+                ) {
+                    Text("Aceptar", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+            }
         }
     }
 }

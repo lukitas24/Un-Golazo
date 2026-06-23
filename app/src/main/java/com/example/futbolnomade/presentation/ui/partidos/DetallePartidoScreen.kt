@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.futbolnomade.domain.model.EstadoPartido
 import com.example.futbolnomade.domain.model.Partido
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
@@ -104,6 +106,27 @@ fun DetallePartidoScreen(
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
+
+        if (partido.estado == EstadoPartido.PENDIENTE_RESERVA) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Surface(
+                color = Color(0xFFFFC107).copy(alpha = 0.2f),
+                shape = RoundedCornerShape(8.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFC107))
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "⚠️ Este partido está pendiente de aprobación por el dueño de la cancha.",
+                        color = Color(0xFFFFC107),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(6.dp))
 

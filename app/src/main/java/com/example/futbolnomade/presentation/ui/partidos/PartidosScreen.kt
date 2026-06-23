@@ -15,9 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.futbolnomade.domain.model.EstadoPartido
 import com.example.futbolnomade.domain.model.Partido
 import com.example.futbolnomade.presentation.state.PartidoUiState
-import com.example.futbolnomade.presentation.ui.components.AppBottomBar
 
 private val FondoOscuro = Color(0xFF202020)
 private val Verde = Color(0xFF82A820)
@@ -38,6 +38,10 @@ fun PartidosScreen(
     val ordenes = listOf("Más próximos", "Más cupos", "Nombre A-Z")
 
     val partidosFiltrados = uiState.partidos
+        .filter { partido ->
+            partido.estado == EstadoPartido.PUBLICADO ||
+                    partido.estado == EstadoPartido.RESERVA_APROBADA
+        }
         .filter { partido ->
             busqueda.isBlank() ||
                     partido.titulo.contains(busqueda, ignoreCase = true) ||

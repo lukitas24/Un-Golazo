@@ -35,6 +35,7 @@ import com.example.futbolnomade.presentation.viewModel.CanchaViewModel
 import com.example.futbolnomade.presentation.viewModel.HomeViewModel
 import com.example.futbolnomade.presentation.viewModel.PartidoViewModel
 import com.example.futbolnomade.presentation.viewModel.PerfilViewModel
+import com.example.futbolnomade.presentation.viewModel.ReservaViewModel
 import com.example.futbolnomade.presentation.ui.CercaDeMiScreen
 import com.example.futbolnomade.presentation.ui.partidos.MisPartidosScreen
 
@@ -52,6 +53,7 @@ fun AppNavigation() {
     val partidoViewModel: PartidoViewModel = viewModel()
     val canchaViewModel:  CanchaViewModel  = viewModel()
     val perfilViewModel:  PerfilViewModel  = viewModel()
+    val reservaViewModel: ReservaViewModel = viewModel()
 
     Scaffold(
         bottomBar = {
@@ -185,7 +187,8 @@ fun AppNavigation() {
                             canchaId = canchaId,
                             nombreCancha = nombreCancha,
                             latitud = latitud,
-                            longitud = longitud
+                            longitud = longitud,
+                            propietarioCancha = canchaViewModel.uiState.canchas.find { it.id == canchaId }?.propietario
                         )
 
                         navController.popBackStack()
@@ -317,12 +320,14 @@ fun AppNavigation() {
                 val canchaId = backStackEntry.arguments?.getString("canchaId") ?: return@composable
 
                 AdminCanchaScreen(
-                    canchaId         = canchaId,
-                    canchaViewModel  = canchaViewModel,
+                    canchaId          = canchaId,
+                    canchaViewModel   = canchaViewModel,
+                    reservaViewModel  = reservaViewModel,
+                    partidoViewModel  = partidoViewModel,
                     onEliminarYVolver = {
                         navController.popBackStack()
                     },
-                    onVolver         = { navController.popBackStack() }
+                    onVolver          = { navController.popBackStack() }
                 )
             }
 

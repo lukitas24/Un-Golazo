@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.futbolnomade.domain.model.Cancha
+import com.example.futbolnomade.domain.model.EstadoPartido
 import com.example.futbolnomade.domain.model.Partido
 import com.google.android.gms.location.LocationServices // IMPORTANTE: Asegúrate de que esté este import
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
@@ -116,7 +117,9 @@ fun CercaDeMiScreen(
             ElementoMapa.EsCancha(cancha) to pos
         }
 
-        val partidosMapeados = partidos.mapIndexed { index, partido ->
+        val partidosMapeados = partidos
+            .filter { it.estado == EstadoPartido.PUBLICADO || it.estado == EstadoPartido.RESERVA_APROBADA }
+            .mapIndexed { index, partido ->
             val pos = try {
                 val partes = partido.ubicacion.split(",")
                 LatLng(partes[0].trim().toDouble(), partes[1].trim().toDouble())

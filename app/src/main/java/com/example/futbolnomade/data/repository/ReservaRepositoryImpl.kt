@@ -13,11 +13,19 @@ class ReservaRepositoryImpl(
         return remoteDataSource.obtenerReservasPorUsuario(usuarioId)
     }
 
+    override fun obtenerReservasPorCancha(canchaId: String): Flow<List<Reserva>> {
+        return remoteDataSource.obtenerReservasPorCancha(canchaId)
+    }
+
     override suspend fun crearReserva(reserva: Reserva) {
         remoteDataSource.crearReserva(reserva)
     }
 
     override suspend fun cancelarReserva(reservaId: String) {
         remoteDataSource.cancelarReserva(reservaId)
+    }
+
+    override suspend fun actualizarEstadoReserva(reservaId: String, nuevoEstado: String) {
+        remoteDataSource.actualizarEstadoReserva(reservaId, nuevoEstado)
     }
 }

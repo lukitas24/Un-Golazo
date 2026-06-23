@@ -3,6 +3,7 @@ package com.example.futbolnomade.presentation.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.futbolnomade.data.repository.PartidoRepositoryImpl
+import com.example.futbolnomade.domain.model.EstadoPartido
 import com.example.futbolnomade.domain.model.Partido
 import com.example.futbolnomade.domain.repository.PartidoRepository
 import com.example.futbolnomade.presentation.state.HomeUiState
@@ -28,7 +29,9 @@ class HomeViewModel(private val repository: PartidoRepository = PartidoRepositor
     private fun cargarPartidos() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            val partidos = repository.obtenerPartidos().map { it.toResumen() }
+            val partidos = repository.obtenerPartidos()
+                .filter { it.estado == EstadoPartido.PUBLICADO || it.estado == EstadoPartido.RESERVA_APROBADA }
+                .map { it.toResumen() }
             _uiState.value = _uiState.value.copy(
                 proximosPartidos = partidos,
                 isLoading = false
