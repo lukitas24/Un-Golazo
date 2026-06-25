@@ -13,38 +13,89 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class HomeViewModel(private val repository: PartidoRepository = PartidoRepositoryImpl()) : ViewModel() {
+class HomeViewModel(
+    private val repository: PartidoRepository = PartidoRepositoryImpl()
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    fun inicializar(nombreUsuario: String, emailUsuario: String) {
+    fun inicializar(
+        nombreUsuario: String,
+        emailUsuario: String
+    ) {
         _uiState.value = _uiState.value.copy(
             nombreUsuario = nombreUsuario,
             emailUsuario = emailUsuario
         )
+
         cargarPartidos()
     }
 
     private fun cargarPartidos() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            val partidos = repository.obtenerPartidos()
-                .filter { it.estado == EstadoPartido.PUBLICADO || it.estado == EstadoPartido.RESERVA_APROBADA }
-                .map { it.toResumen() }
             _uiState.value = _uiState.value.copy(
-                proximosPartidos = partidos,
-                isLoading = false
+                isLoading = true
             )
+
+            try {
+                val emailUsuarioActual = _uiState.value.emailUsuario
+                    .trim()
+                    .lowercase()
+
+                val momentoActual = System.currentTimeMillis()
+
+                val partidos = repository.obtenerPartidos()
+                    .filter { partido ->
+
+                        val estadoValido =
+                            partido.estado == EstadoPartido.PUBLICADO ||
+                                    partido.estado == EstadoPartido.RESERVA_APROBADA
+
+                        val usuarioEstaAnotado =
+                            partido.usuariosAnotados.any { usuarioAnotado ->
+                                usuarioAnotado
+                                    .trim()
+                                    .lowercase() == emailUsuarioActual
+                            }
+
+                        val partidoTodaviaNoOcurrio =
+                            partido.fechaHoraInicio > momentoActual
+
+                        estadoValido &&
+                                usuarioEstaAnotado &&
+                                partidoTodaviaNoOcurrio
+                    }
+                    .sortedBy { partido ->
+                        partido.fechaHoraInicio
+                    }
+                    .map { partido ->
+                        partido.toResumen()
+                    }
+
+                _uiState.value = _uiState.value.copy(
+                    proximosPartidos = partidos,
+                    isLoading = false
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+
+                _uiState.value = _uiState.value.copy(
+                    proximosPartidos = emptyList(),
+                    isLoading = false
+                )
+            }
         }
     }
 
-    private fun Partido.toResumen() = PartidoResumen(
-        id = id,
-        titulo = titulo,
-        horario = horario,
-        fecha = fecha,
-        anfitrion = creador,
-        rating = calificacionCreador.toFloat()
-    )
+    private fun Partido.toResumen(): PartidoResumen {
+        return PartidoResumen(
+            id = id,
+            titulo = titulo,
+            horario = horario,
+            fecha = fecha,
+            anfitrion = creador,
+            rating = calificacionCreador.toFloat()
+        )
+    }
 }

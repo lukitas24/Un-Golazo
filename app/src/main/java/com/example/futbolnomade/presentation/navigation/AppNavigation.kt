@@ -338,21 +338,55 @@ fun AppNavigation() {
                 )
             }
 
-            // 🏟 DETALLE DE CANCHA PÚBLICA
+// 🏟 DETALLE DE CANCHA PÚBLICA
             composable(
                 route = Screen.DetalleCancha.route,
-                arguments = listOf(navArgument("canchaId") { type = NavType.StringType })
+                arguments = listOf(
+                    navArgument("canchaId") {
+                        type = NavType.StringType
+                    }
+                )
             ) { backStackEntry ->
-                val canchaId = backStackEntry.arguments?.getString("canchaId") ?: ""
-                val cancha   = canchaViewModel.uiState.canchas.find { it.id == canchaId }
+
+                val canchaId =
+                    backStackEntry.arguments
+                        ?.getString("canchaId")
+                        .orEmpty()
+
+                val cancha =
+                    canchaViewModel.uiState.canchas.find {
+                        it.id == canchaId
+                    }
+
+                LaunchedEffect(canchaId) {
+                    canchaViewModel.cargarReservasConfirmadasCancha(
+                        canchaId
+                    )
+                }
 
                 DetalleCanchaScreen(
                     cancha = cancha,
-                    turnosReservados = listOf("19:00", "21:00"),
-                    onReservarTurno = { idCancha, hora ->
+
+                    reservasConfirmadas =
+                        canchaViewModel.reservasConfirmadasCancha,
+
+                    onReservarTurno = {
+                            idCancha,
+                            fecha,
+                            hora ->
+
+                        /*
+                         * Acá después podés crear una reserva manual
+                         * desde el detalle de la cancha.
+                         *
+                         * Por ahora conserva tu comportamiento actual.
+                         */
                         navController.popBackStack()
                     },
-                    onVolver = { navController.popBackStack() }
+
+                    onVolver = {
+                        navController.popBackStack()
+                    }
                 )
             }
 

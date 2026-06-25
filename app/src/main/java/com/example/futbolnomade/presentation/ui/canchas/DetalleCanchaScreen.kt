@@ -27,6 +27,7 @@ import com.google.maps.android.compose.*
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import com.example.futbolnomade.domain.model.Reserva
 
 private val ColorFondo = Color(0xFF1A1A1A)
 private val ColorCampo = Color(0xFF2A2A2A)
@@ -38,8 +39,12 @@ private val ColorSub = Color(0xFF999999)
 @Composable
 fun DetalleCanchaScreen(
     cancha: Cancha?,
-    turnosReservados: List<String> = emptyList(),
-    onReservarTurno: (canchaId: String, hora: String) -> Unit,
+    reservasConfirmadas: List<Reserva> = emptyList(),
+    onReservarTurno: (
+        canchaId: String,
+        fecha: String,
+        hora: String
+    ) -> Unit,
     onVolver: () -> Unit
 ) {
     if (cancha == null) {
@@ -102,6 +107,13 @@ fun DetalleCanchaScreen(
 
     val fechaTexto = remember(diasAdelante) {
         SimpleDateFormat("dd/MM", Locale("es", "ES")).format(fechaSeleccionada.time)
+    }
+
+    val fechaReserva = remember(diasAdelante) {
+        SimpleDateFormat(
+            "dd/MM/yyyy",
+            Locale("es", "ES")
+        ).format(fechaSeleccionada.time)
     }
 
     val tituloDia = "$diaSeleccionado $fechaTexto"
@@ -388,7 +400,32 @@ fun DetalleCanchaScreen(
                                                         )
                                         )
 
-                                val yaReservado = turnosReservados.contains(hora)
+                                val yaReservado =
+                                    reservasConfirmadas.any { reserva ->
+                                        val mismaCancha =
+                                            reserva.canchaId == cancha.id
+
+                                        val mismaFecha =
+                                            reserva.fecha.trim() ==
+                                                    fechaReserva.trim()
+
+                                        val mismaHora =
+                                            reserva.hora.trim() ==
+                                                    hora.trim()
+
+                                        val estaConfirmada =
+                                            reserva.estado
+                                                .trim()
+                                                .equals(
+                                                    "Confirmada",
+                                                    ignoreCase = true
+                                                )
+
+                                        mismaCancha &&
+                                                mismaFecha &&
+                                                mismaHora &&
+                                                estaConfirmada
+                                    }
                                 val deshabilitado = yaReservado || turnoYaPaso
                                 val esElSeleccionado = turnoSeleccionado == hora
 
@@ -459,7 +496,7 @@ fun DetalleCanchaScreen(
             Button(
                 onClick = {
                     turnoSeleccionado?.let { hora ->
-                        onReservarTurno(cancha.id, hora)
+                        onReservarTurno(cancha.id,fechaReserva, hora)
                     }
                 },
                 enabled = turnoSeleccionado != null,
