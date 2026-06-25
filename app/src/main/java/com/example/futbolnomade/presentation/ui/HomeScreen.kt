@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.futbolnomade.presentation.state.PartidoResumen
 import com.example.futbolnomade.presentation.viewModel.HomeViewModel
+import com.example.futbolnomade.presentation.viewModel.ValoracionViewModel
 
 private val ColorFondo       = Color(0xFF1A1A1A)
 private val ColorTarjeta     = Color(0xFF242424)
@@ -42,6 +43,7 @@ private val ColorVerde       = Color(0xFF8BC34A)
 private val ColorVerdeOscuro = Color(0xFF6A9E2F)
 private val ColorTexto       = Color(0xFFEEEEEE)
 private val ColorSubtexto    = Color(0xFF999999)
+private val ColorOro         = Color(0xFFFFD700)
 
 private data class GridItem(
     val label: String,
@@ -57,25 +59,29 @@ fun HomeScreen(
     onIrACanchas: () -> Unit,
     onIrAMisPartidos: () -> Unit,
     onIrAMisCanchas: () -> Unit,
-    onIrAMisReservas: () -> Unit,
     onIrACercaMio: () -> Unit,
     onBuscarPartido: (String) -> Unit,
     onVerDetallePartido: (String) -> Unit,
     onIrAElementos: () -> Unit = {},
     onIrAAcerca: () -> Unit = {},
-    homeViewModel: HomeViewModel = viewModel()
+    homeViewModel: HomeViewModel = viewModel(),
+    valoracionViewModel: ValoracionViewModel = viewModel()
 ) {
     val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+    var mostrarPopupValoracion by remember { mutableStateOf(false) }
 
     LaunchedEffect(nombreUsuario, emailUsuario) {
         homeViewModel.inicializar(nombreUsuario, emailUsuario)
+        if (emailUsuario.isNotBlank()) {
+            valoracionViewModel.cargarValoracionesUsuario(emailUsuario)
+        }
     }
 
     val gridItems = listOf(
         GridItem("Canchas",      Icons.Default.Place,      onIrACanchas),
         GridItem("Partidos",     Icons.Default.Home,       onIrAPartidos),
         GridItem("Cerca mío",    Icons.Default.LocationOn, onIrACercaMio),
-        GridItem("Mis reservas", Icons.Default.DateRange,  onIrAMisReservas),
+        GridItem("Mi valoración", Icons.Default.Star,      { mostrarPopupValoracion = true }),
         GridItem("Mis partidos", Icons.Default.Person,     onIrAMisPartidos),
         GridItem("Mis canchas",  Icons.Default.Favorite,   onIrAMisCanchas)
     )
@@ -140,6 +146,97 @@ fun HomeScreen(
                 Spacer(Modifier.height(8.dp))
             }
         }
+    }
+
+    if (mostrarPopupValoracion) {
+        val promedioOrg = valoracionViewModel.obtenerPromedioOrganizador(emailUsuario)
+        val cantidadOrg = valoracionViewModel.obtenerCantidadValoracionesOrganizador(emailUsuario)
+        
+        val promedioJug = valoracionViewModel.obtenerPromedioJugador(emailUsuario)
+        val cantidadJug = valoracionViewModel.obtenerCantidadValoracionesJugador(emailUsuario)
+
+        AlertDialog(
+            onDismissRequest = { mostrarPopupValoracion = false },
+            containerColor = ColorTarjeta,
+            title = {
+                Text(
+                    text = "Mi Valoración",
+                    color = ColorTexto,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    SeccionValoracionPopup(
+                        titulo = "Como Organizador",
+                        promedio = promedioOrg,
+                        cantidad = cantidadOrg
+                    )
+                    
+                    HorizontalDivider(color = ColorBorde)
+                    
+                    SeccionValoracionPopup(
+                        titulo = "Como Jugador",
+                        promedio = promedioJug,
+                        cantidad = cantidadJug
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { mostrarPopupValoracion = false }) {
+                    Text("Cerrar", color = ColorVerde)
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun SeccionValoracionPopup(
+    titulo: String,
+    promedio: Double,
+    cantidad: Int
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = titulo,
+            color = ColorSubtexto,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium
+        )
+        
+        Spacer(Modifier.height(8.dp))
+        
+        Text(
+            text = String.format(java.util.Locale.getDefault(), "%.1f", promedio),
+            color = ColorVerde,
+            fontSize = 36.sp,
+            fontWeight = FontWeight.Bold
+        )
+        
+        Row(modifier = Modifier.padding(vertical = 4.dp)) {
+            repeat(5) { index ->
+                val starColor = if (index < promedio.toInt()) Color(0xFFFFD700) else Color(0xFF2E2E2E)
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    tint = starColor,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+        
+        Text(
+            text = "$cantidad valoraciones",
+            color = ColorSubtexto,
+            fontSize = 12.sp
+        )
     }
 }
 

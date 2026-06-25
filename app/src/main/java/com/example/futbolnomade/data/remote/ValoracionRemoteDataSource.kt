@@ -125,6 +125,26 @@ class ValoracionRemoteDataSource {
         }
     }
 
+    suspend fun obtenerValoracionesSobreUsuario(
+        emailUsuario: String
+    ): List<ValoracionPartido> {
+        return try {
+            // Fetch everything and filter in memory for received ratings (as player or organizer)
+            // In a larger app, we'd use composite indexes or better model fields
+            valoracionesCollection
+                .get()
+                .await()
+                .toObjects(ValoracionPartido::class.java)
+                .filter { valoracion ->
+                    valoracion.organizadorEmail == emailUsuario ||
+                    valoracion.valoracionesJugadores.any { it.jugadorEmail == emailUsuario }
+                }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
     suspend fun yaValoro(
         partidoId: String,
         autorEmail: String

@@ -27,6 +27,15 @@ class ValoracionRepositoryImpl(
             )
     }
 
+    override suspend fun obtenerValoracionesSobreUsuario(
+        emailUsuario: String
+    ): List<ValoracionPartido> {
+        return remoteDataSource
+            .obtenerValoracionesSobreUsuario(
+                emailUsuario
+            )
+    }
+
     override suspend fun yaValoro(
         partidoId: String,
         autorEmail: String

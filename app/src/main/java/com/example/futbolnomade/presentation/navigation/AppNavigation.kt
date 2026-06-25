@@ -129,7 +129,6 @@ fun AppNavigation() {
                     onIrACanchas        = { navController.navigate(Screen.Canchas.route) },
                     onIrAMisPartidos    = { navController.navigate(Screen.MisPartidos.route) },
                     onIrAMisCanchas     = { navController.navigate(Screen.MisCanchas.route) },
-                    onIrAMisReservas    = { navController.navigate(Screen.Partidos.route) },
                     onIrACercaMio       = { navController.navigate(Screen.CercaDeMi.route) },
                     onBuscarPartido     = { navController.navigate(Screen.Search.route) },
                     onVerDetallePartido = { id -> navController.navigate(Screen.DetallePartido.createRoute(id)) },

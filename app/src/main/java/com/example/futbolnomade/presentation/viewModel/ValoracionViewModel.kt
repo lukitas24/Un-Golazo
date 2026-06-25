@@ -20,6 +20,11 @@ class ValoracionViewModel(
     )
         private set
 
+    var valoracionesRecibidas by mutableStateOf(
+        emptyList<ValoracionPartido>()
+    )
+        private set
+
     var guardando by mutableStateOf(false)
         private set
 
@@ -31,6 +36,7 @@ class ValoracionViewModel(
     ) {
         if (emailUsuario.isBlank()) {
             valoracionesUsuario = emptyList()
+            valoracionesRecibidas = emptyList()
             return
         }
 
@@ -39,6 +45,38 @@ class ValoracionViewModel(
                 repository.obtenerValoracionesDeUsuario(
                     emailUsuario
                 )
+            
+            valoracionesRecibidas =
+                repository.obtenerValoracionesSobreUsuario(
+                    emailUsuario
+                )
+        }
+    }
+
+    fun obtenerPromedioOrganizador(emailUsuario: String): Double {
+        val puntuaciones = valoracionesRecibidas
+            .filter { it.organizadorEmail == emailUsuario }
+            .map { it.puntuacionOrganizador }
+        
+        return if (puntuaciones.isEmpty()) 0.0 else puntuaciones.average()
+    }
+
+    fun obtenerPromedioJugador(emailUsuario: String): Double {
+        val puntuaciones = valoracionesRecibidas
+            .mapNotNull { v -> 
+                v.valoracionesJugadores.find { it.jugadorEmail == emailUsuario }?.puntuacion 
+            }
+        
+        return if (puntuaciones.isEmpty()) 0.0 else puntuaciones.average()
+    }
+
+    fun obtenerCantidadValoracionesOrganizador(emailUsuario: String): Int {
+        return valoracionesRecibidas.count { it.organizadorEmail == emailUsuario }
+    }
+
+    fun obtenerCantidadValoracionesJugador(emailUsuario: String): Int {
+        return valoracionesRecibidas.count { v -> 
+            v.valoracionesJugadores.any { it.jugadorEmail == emailUsuario } 
         }
     }
 

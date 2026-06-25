@@ -12,6 +12,10 @@ interface ValoracionRepository {
         emailUsuario: String
     ): List<ValoracionPartido>
 
+    suspend fun obtenerValoracionesSobreUsuario(
+        emailUsuario: String
+    ): List<ValoracionPartido>
+
     suspend fun yaValoro(
         partidoId: String,
         autorEmail: String
