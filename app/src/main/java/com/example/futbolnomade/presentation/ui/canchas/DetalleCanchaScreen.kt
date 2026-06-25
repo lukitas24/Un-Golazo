@@ -282,6 +282,7 @@ fun DetalleCanchaScreen(
                     .border(1.dp, ColorBorde, RoundedCornerShape(10.dp))
                     .padding(4.dp)
             ) {
+                val markerState = remember(cancha.id) { MarkerState(position = coordenadasCancha) }
                 GoogleMap(
                     modifier = Modifier.fillMaxSize(),
                     cameraPositionState = cameraPositionState,
@@ -292,7 +293,7 @@ fun DetalleCanchaScreen(
                     properties = MapProperties(isMyLocationEnabled = false)
                 ) {
                     Marker(
-                        state = MarkerState(position = coordenadasCancha),
+                        state = markerState,
                         title = cancha.nombre
                     )
                 }

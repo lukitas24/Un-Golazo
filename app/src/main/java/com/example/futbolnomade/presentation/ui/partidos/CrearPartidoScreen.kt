@@ -447,6 +447,7 @@ fun CrearPartidoScreen(
                         .clip(RoundedCornerShape(16.dp))
                         .border(1.dp, GrisBorde, RoundedCornerShape(16.dp))
                 ) {
+                    val markerState = remember(cancha.id) { MarkerState(position = LatLng(cancha.latitud, cancha.longitud)) }
                     GoogleMap(
                         modifier = Modifier.fillMaxSize(),
                         cameraPositionState = cameraPositionState,
@@ -454,9 +455,7 @@ fun CrearPartidoScreen(
                         uiSettings = mapUiSettingsFijo
                     ) {
                         Marker(
-                            state = MarkerState(
-                                position = LatLng(cancha.latitud, cancha.longitud)
-                            ),
+                            state = markerState,
                             title = cancha.nombre,
                             snippet = cancha.ubicacion
                         )
@@ -552,6 +551,11 @@ fun CrearPartidoScreen(
                     .clip(RoundedCornerShape(18.dp))
                     .border(1.dp, GrisBorde, RoundedCornerShape(18.dp))
             ) {
+                val markerStateLibre = remember { MarkerState(position = posicionSeleccionada) }
+                LaunchedEffect(posicionSeleccionada) {
+                    markerStateLibre.position = posicionSeleccionada
+                }
+
                 GoogleMap(
                     modifier = Modifier.fillMaxSize(),
                     cameraPositionState = cameraPositionState,
@@ -569,7 +573,7 @@ fun CrearPartidoScreen(
                         val posicionCancha = LatLng(cancha.latitud, cancha.longitud)
 
                         Marker(
-                            state = MarkerState(position = posicionCancha),
+                            state = remember(cancha.id) { MarkerState(position = posicionCancha) },
                             title = cancha.nombre,
                             snippet = "Cancha cargada • \$${cancha.precio}/hr",
                             icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN),
@@ -581,7 +585,7 @@ fun CrearPartidoScreen(
                     }
 
                     Marker(
-                        state = MarkerState(position = posicionSeleccionada),
+                        state = markerStateLibre,
                         title = "Punto de encuentro",
                         icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
                     )

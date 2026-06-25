@@ -10,6 +10,7 @@ import com.example.futbolnomade.domain.model.Cancha
 import com.example.futbolnomade.domain.model.HorarioDisponible
 import com.example.futbolnomade.domain.repository.CanchaRepository
 import com.example.futbolnomade.presentation.state.CanchaUiState
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class CanchaViewModel(
@@ -19,8 +20,11 @@ class CanchaViewModel(
     var uiState by mutableStateOf(CanchaUiState())
         private set
 
+    private var currentCanchasJob: Job? = null
+
     fun cargarCanchas(userId: String) {
-        viewModelScope.launch {
+        currentCanchasJob?.cancel()
+        currentCanchasJob = viewModelScope.launch {
             repository.getCanchas(userId).collect { canchas ->
                 uiState = uiState.copy(canchas = canchas)
             }
@@ -28,7 +32,8 @@ class CanchaViewModel(
     }
 
     fun cargarTodasLasCanchas() {
-        viewModelScope.launch {
+        currentCanchasJob?.cancel()
+        currentCanchasJob = viewModelScope.launch {
             repository.getAllCanchas().collect { canchas ->
                 uiState = uiState.copy(canchas = canchas)
             }

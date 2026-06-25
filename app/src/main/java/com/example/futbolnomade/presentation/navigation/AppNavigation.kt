@@ -167,7 +167,6 @@ fun AppNavigation() {
                 }
                 PartidosScreen(
                     uiState        = partidoViewModel.uiState,
-                    onCrearPartido = { navController.navigate(Screen.CrearPartido.route) },
                     onVerDetalle   = { id -> navController.navigate(Screen.DetallePartido.createRoute(id)) },
                     onVolver       = { navController.popBackStack() }
                 )

@@ -342,6 +342,7 @@ fun DetallePartidoScreen(
                 )
                 .padding(vertical = 8.dp)
         ) {
+            val markerState = remember(partido.id) { MarkerState(position = coordenadasPartido) }
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
@@ -354,9 +355,7 @@ fun DetallePartidoScreen(
                 )
             ) {
                 Marker(
-                    state = MarkerState(
-                        position = coordenadasPartido
-                    ),
+                    state = markerState,
                     title = partido.nombreCancha
                         ?: "Lugar del partido"
                 )

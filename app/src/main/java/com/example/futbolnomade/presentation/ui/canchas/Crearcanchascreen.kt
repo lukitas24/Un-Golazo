@@ -143,6 +143,11 @@ fun CrearCanchaScreen(
                     .border(1.dp, ColorBorde, RoundedCornerShape(10.dp))
                     .padding(4.dp)
             ) {
+                val markerState = remember { MarkerState(position = posicionSeleccionada) }
+                LaunchedEffect(posicionSeleccionada) {
+                    markerState.position = posicionSeleccionada
+                }
+
                 GoogleMap(
                     modifier = Modifier.fillMaxSize(),
                     cameraPositionState = cameraPositionState,
@@ -153,7 +158,7 @@ fun CrearCanchaScreen(
                         ubicacion = "${String.format(Locale.US, "%.5f", latLng.latitude)}, ${String.format(Locale.US, "%.5f", latLng.longitude)}"
                     }
                 ) {
-                    Marker(state = MarkerState(position = posicionSeleccionada), title = "Ubicación seleccionada")
+                    Marker(state = markerState, title = "Ubicación seleccionada")
                 }
             }
 

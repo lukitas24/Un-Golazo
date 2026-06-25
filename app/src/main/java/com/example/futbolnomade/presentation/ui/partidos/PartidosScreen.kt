@@ -26,7 +26,6 @@ private val BlancoCard = Color(0xFFF8F8F8)
 @Composable
 fun PartidosScreen(
     uiState: PartidoUiState,
-    onCrearPartido: () -> Unit,
     onVerDetalle: (String) -> Unit,
     onVolver: () -> Unit
 ) {
@@ -67,24 +66,8 @@ fun PartidosScreen(
             }
         }
 
-    // Usamos Scaffold para manejar fácilmente el botón flotante y el BottomBar si lo necesitas
+    // Usamos Scaffold para manejar fácilmente el BottomBar si lo necesitas
     Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onCrearPartido,
-                containerColor = Verde,
-                contentColor = Color.Black,
-                shape = CircleShape,
-                modifier = Modifier.padding(bottom = 16.dp, end = 8.dp) // Ajuste para que no tape contenido
-            ) {
-                Text(
-                    text = "+",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        },
-        floatingActionButtonPosition = FabPosition.End,
         bottomBar = {
             // Aquí puedes llamar a tu AppBottomBar() si lo necesitas más adelante
         }
