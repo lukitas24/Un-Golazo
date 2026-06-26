@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.futbolnomade.domain.model.Cancha
+import com.example.futbolnomade.domain.model.Reserva
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
@@ -38,8 +39,8 @@ private val ColorSub = Color(0xFF999999)
 @Composable
 fun DetalleCanchaScreen(
     cancha: Cancha?,
-    turnosReservados: List<String> = emptyList(),
-    onReservarTurno: (canchaId: String, hora: String) -> Unit,
+    reservasExistentes: List<Reserva> = emptyList(),
+    onReservarTurno: (canchaId: String, fecha: String, hora: String) -> Unit,
     onVolver: () -> Unit
 ) {
     if (cancha == null) {
@@ -102,6 +103,16 @@ fun DetalleCanchaScreen(
 
     val fechaTexto = remember(diasAdelante) {
         SimpleDateFormat("dd/MM", Locale("es", "ES")).format(fechaSeleccionada.time)
+    }
+
+    val fechaCompleta = remember(diasAdelante) {
+        SimpleDateFormat("dd/MM/yyyy", Locale("es", "ES")).format(fechaSeleccionada.time)
+    }
+
+    val turnosReservadosParaHoy = remember(reservasExistentes, fechaCompleta) {
+        reservasExistentes
+            .filter { it.fecha == fechaCompleta && it.estado != "Cancelada" && it.estado != "Rechazada" }
+            .map { it.hora }
     }
 
     val tituloDia = "$diaSeleccionado $fechaTexto"
@@ -388,7 +399,7 @@ fun DetalleCanchaScreen(
                                                         )
                                         )
 
-                                val yaReservado = turnosReservados.contains(hora)
+                                val yaReservado = turnosReservadosParaHoy.contains(hora)
                                 val deshabilitado = yaReservado || turnoYaPaso
                                 val esElSeleccionado = turnoSeleccionado == hora
 
@@ -459,7 +470,7 @@ fun DetalleCanchaScreen(
             Button(
                 onClick = {
                     turnoSeleccionado?.let { hora ->
-                        onReservarTurno(cancha.id, hora)
+                        onReservarTurno(cancha.id, fechaCompleta, hora)
                     }
                 },
                 enabled = turnoSeleccionado != null,

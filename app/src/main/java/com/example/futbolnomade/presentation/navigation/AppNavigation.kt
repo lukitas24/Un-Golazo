@@ -171,6 +171,9 @@ fun AppNavigation() {
                 )
             }
             composable(Screen.CrearPartido.route) {
+                LaunchedEffect(Unit) {
+                    canchaViewModel.cargarTodasLasCanchas()
+                }
                 CrearPartidoScreen(
                     canchas = canchaViewModel.uiState.canchas,
                     onCrearPartido = {
@@ -344,11 +347,28 @@ fun AppNavigation() {
             ) { backStackEntry ->
                 val canchaId = backStackEntry.arguments?.getString("canchaId") ?: ""
                 val cancha   = canchaViewModel.uiState.canchas.find { it.id == canchaId }
+                
+                LaunchedEffect(canchaId) {
+                    reservaViewModel.cargarReservasPorCancha(canchaId)
+                }
 
                 DetalleCanchaScreen(
                     cancha = cancha,
-                    turnosReservados = listOf("19:00", "21:00"),
-                    onReservarTurno = { idCancha, hora ->
+                    reservasExistentes = reservaViewModel.uiState.reservas.filter { it.canchaId == canchaId },
+                    onReservarTurno = { idCancha, fecha, hora ->
+                        val esDuenio = cancha?.propietario?.lowercase() == perfilViewModel.email.lowercase()
+                        
+                        reservaViewModel.crearReserva(
+                            com.example.futbolnomade.domain.model.Reserva(
+                                canchaId = idCancha,
+                                canchaNombre = cancha?.nombre ?: "",
+                                usuarioId = perfilViewModel.email,
+                                usuarioNombre = perfilViewModel.nombre,
+                                fecha = fecha,
+                                hora = hora,
+                                estado = if (esDuenio) "Confirmada" else "Pendiente"
+                            )
+                        )
                         navController.popBackStack()
                     },
                     onVolver = { navController.popBackStack() }

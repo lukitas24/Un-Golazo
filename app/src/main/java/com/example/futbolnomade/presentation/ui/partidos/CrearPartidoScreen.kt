@@ -104,7 +104,18 @@ fun CrearPartidoScreen(
     val radioInvisibleKm = 20.0
 
     var mostrarDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
+    val datePickerState = rememberDatePickerState(
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                val calendar = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                return utcTimeMillis >= calendar.timeInMillis
+            }
+        }
+    )
 
     var dropdownExpandido by remember { mutableStateOf(false) }
     val opcionesDificultad = listOf("Fácil", "Medio", "Avanzado")
@@ -759,6 +770,17 @@ fun CrearPartidoScreen(
 
                     fecha.isBlank() -> {
                         error = "La fecha es obligatoria"
+                    }
+
+                    SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(fecha)?.before(
+                        Calendar.getInstance().apply {
+                            set(Calendar.HOUR_OF_DAY, 0)
+                            set(Calendar.MINUTE, 0)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }.time
+                    ) == true -> {
+                        error = "No podés crear un partido con una fecha pasada"
                     }
 
                     modoUbicacion == ModoUbicacion.CANCHA_APP && canchaSeleccionada == null -> {
