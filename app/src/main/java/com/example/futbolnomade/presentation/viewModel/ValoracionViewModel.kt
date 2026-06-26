@@ -84,12 +84,16 @@ class ValoracionViewModel(
         partidoId: String,
         emailUsuario: String
     ): Boolean {
-        return valoracionesUsuario.any {
-            it.partidoId == partidoId &&
-                    it.autorEmail == emailUsuario
+        return valoracionesUsuario.any { valoracion ->
+            valoracion.partidoId == partidoId &&
+                    valoracion.autorEmail
+                        .trim()
+                        .equals(
+                            emailUsuario.trim(),
+                            ignoreCase = true
+                        )
         }
     }
-
     fun guardarValoracion(
         valoracion: ValoracionPartido,
         onResultado: (Boolean) -> Unit

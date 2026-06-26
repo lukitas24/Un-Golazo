@@ -2,6 +2,7 @@ package com.example.futbolnomade.data.remote
 
 import android.util.Base64
 import com.example.futbolnomade.domain.model.Cancha
+import com.example.futbolnomade.domain.model.Partido
 import com.example.futbolnomade.domain.model.ValoracionPartido
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -16,27 +17,116 @@ class ValoracionRemoteDataSource {
     private val canchasCollection =
         db.collection("canchas")
 
+    private val partidosCollection =
+        db.collection("partidos")
+
     suspend fun guardarValoracion(
         valoracion: ValoracionPartido
     ): Boolean {
+
+        if (
+            valoracion.partidoId.isBlank() ||
+            valoracion.autorEmail.isBlank()
+        ) {
+            return false
+        }
+
+        val autorNormalizado =
+            valoracion.autorEmail
+                .trim()
+                .lowercase()
+
         return try {
             val valoracionId = crearValoracionId(
                 partidoId = valoracion.partidoId,
-                autorEmail = valoracion.autorEmail
+                autorEmail = autorNormalizado
             )
 
             val valoracionRef =
                 valoracionesCollection.document(valoracionId)
 
+            val partidoRef =
+                partidosCollection.document(valoracion.partidoId)
+
             db.runTransaction { transaction ->
 
                 /*
-                 * Primero se realizan todas las lecturas.
+                 * Todas las lecturas deben realizarse antes
+                 * de comenzar las escrituras.
                  */
+
                 val valoracionExistente =
                     transaction.get(valoracionRef)
 
+                val partidoActual =
+                    transaction
+                        .get(partidoRef)
+                        .toObject(Partido::class.java)
+
                 if (valoracionExistente.exists()) {
+                    return@runTransaction false
+                }
+
+                if (partidoActual == null) {
+                    return@runTransaction false
+                }
+
+                /*
+                 * El usuario solamente puede valorar si estaba
+                 * anotado en el partido.
+                 */
+                val usuarioEstabaAnotado =
+                    partidoActual.usuariosAnotados.any { usuario ->
+                        usuario
+                            .trim()
+                            .equals(
+                                autorNormalizado,
+                                ignoreCase = true
+                            )
+                    }
+
+                if (!usuarioEstabaAnotado) {
+                    return@runTransaction false
+                }
+
+                /*
+                 * El partido debe tener una fecha válida y
+                 * ya debe haber comenzado.
+                 */
+                val momentoActual =
+                    System.currentTimeMillis()
+
+                val partidoYaOcurrio =
+                    partidoActual.fechaHoraInicio > 0L &&
+                            partidoActual.fechaHoraInicio <= momentoActual
+
+                if (!partidoYaOcurrio) {
+                    return@runTransaction false
+                }
+
+                /*
+                 * No se permite valorar jugadores que no
+                 * pertenecieron al partido.
+                 */
+                val participantesDelPartido =
+                    partidoActual.usuariosAnotados
+                        .map {
+                            it.trim().lowercase()
+                        }
+                        .toSet()
+
+                val jugadoresValidos =
+                    valoracion.valoracionesJugadores.all {
+                        val emailJugador =
+                            it.jugadorEmail
+                                .trim()
+                                .lowercase()
+
+                        emailJugador in participantesDelPartido &&
+                                it.puntuacion in 1..5
+                    }
+
+                if (!jugadoresValidos) {
                     return@runTransaction false
                 }
 
@@ -45,8 +135,8 @@ class ValoracionRemoteDataSource {
                         ?.takeIf {
                             valoracion.puntuacionCancha in 1..5
                         }
-                        ?.let {
-                            canchasCollection.document(it)
+                        ?.let { canchaId ->
+                            canchasCollection.document(canchaId)
                         }
 
                 val canchaActual: Cancha? =
@@ -57,15 +147,19 @@ class ValoracionRemoteDataSource {
                     }
 
                 /*
-                 * Después se realizan las escrituras.
+                 * A partir de acá comienzan las escrituras.
                  */
-                transaction.set(
-                    valoracionRef,
+
+                val valoracionNormalizada =
                     valoracion.copy(
                         id = valoracionId,
-                        fechaCreacion =
-                            System.currentTimeMillis()
+                        autorEmail = autorNormalizado,
+                        fechaCreacion = momentoActual
                     )
+
+                transaction.set(
+                    valoracionRef,
+                    valoracionNormalizada
                 )
 
                 if (
@@ -109,10 +203,13 @@ class ValoracionRemoteDataSource {
         emailUsuario: String
     ): List<ValoracionPartido> {
         return try {
+            val emailNormalizado =
+                emailUsuario.trim().lowercase()
+
             valoracionesCollection
                 .whereEqualTo(
                     "autorEmail",
-                    emailUsuario
+                    emailNormalizado
                 )
                 .get()
                 .await()
@@ -150,9 +247,12 @@ class ValoracionRemoteDataSource {
         autorEmail: String
     ): Boolean {
         return try {
+            val emailNormalizado =
+                autorEmail.trim().lowercase()
+
             val id = crearValoracionId(
-                partidoId,
-                autorEmail
+                partidoId = partidoId,
+                autorEmail = emailNormalizado
             )
 
             valoracionesCollection
@@ -161,6 +261,7 @@ class ValoracionRemoteDataSource {
                 .await()
                 .exists()
         } catch (e: Exception) {
+            e.printStackTrace()
             false
         }
     }
@@ -171,7 +272,10 @@ class ValoracionRemoteDataSource {
     ): String {
         val emailCodificado =
             Base64.encodeToString(
-                autorEmail.toByteArray(),
+                autorEmail
+                    .trim()
+                    .lowercase()
+                    .toByteArray(),
                 Base64.URL_SAFE or
                         Base64.NO_WRAP or
                         Base64.NO_PADDING

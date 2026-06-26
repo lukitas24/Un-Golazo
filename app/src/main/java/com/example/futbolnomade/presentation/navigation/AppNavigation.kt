@@ -20,6 +20,7 @@ import com.example.futbolnomade.presentation.ui.ElementosScreen
 import com.example.futbolnomade.presentation.ui.HomeScreen
 import com.example.futbolnomade.presentation.ui.LoginScreen
 import com.example.futbolnomade.presentation.ui.RegisterScreen
+import com.example.futbolnomade.presentation.ui.SearchScreen
 import com.example.futbolnomade.presentation.ui.canchas.AdminCanchaScreen
 import com.example.futbolnomade.presentation.ui.canchas.CanchasScreen
 import com.example.futbolnomade.presentation.ui.canchas.CrearCanchaScreen
@@ -42,6 +43,7 @@ import com.example.futbolnomade.presentation.ui.partidos.MisPartidosScreen
 import com.example.futbolnomade.domain.model.puedeValorarse
 import com.example.futbolnomade.presentation.ui.partidos.ValorarPartidoScreen
 import com.example.futbolnomade.presentation.viewModel.ValoracionViewModel
+
 private val rutasSinBottomBar = setOf(Screen.Login.route, Screen.Register.route)
 
 @Composable
@@ -130,7 +132,7 @@ fun AppNavigation() {
                     onIrAMisPartidos    = { navController.navigate(Screen.MisPartidos.route) },
                     onIrAMisCanchas     = { navController.navigate(Screen.MisCanchas.route) },
                     onIrACercaMio       = { navController.navigate(Screen.CercaDeMi.route) },
-                    onBuscarPartido     = { navController.navigate(Screen.Search.route) },
+                    onBuscarPartido     = { query -> navController.navigate(Screen.Search.createRoute(query)) },
                     onVerDetallePartido = { id -> navController.navigate(Screen.DetallePartido.createRoute(id)) },
                     onIrAElementos      = { navController.navigate(Screen.Elementos.route) },
                     onIrAAcerca         = { navController.navigate(Screen.Acerca.route) }
@@ -343,21 +345,25 @@ fun AppNavigation() {
             // 🏟 DETALLE DE CANCHA PÚBLICA
             composable(
                 route = Screen.DetalleCancha.route,
-                arguments = listOf(navArgument("canchaId") { type = NavType.StringType })
+                arguments = listOf(
+                    navArgument("canchaId") {
+                        type = NavType.StringType
+                    }
+                )
             ) { backStackEntry ->
                 val canchaId = backStackEntry.arguments?.getString("canchaId") ?: ""
                 val cancha   = canchaViewModel.uiState.canchas.find { it.id == canchaId }
-                
+
                 LaunchedEffect(canchaId) {
                     reservaViewModel.cargarReservasPorCancha(canchaId)
                 }
 
                 DetalleCanchaScreen(
                     cancha = cancha,
-                    reservasExistentes = reservaViewModel.uiState.reservas.filter { it.canchaId == canchaId },
+                    reservasConfirmadas = reservaViewModel.uiState.reservas.filter { it.canchaId == canchaId },
                     onReservarTurno = { idCancha, fecha, hora ->
                         val esDuenio = cancha?.propietario?.lowercase() == perfilViewModel.email.lowercase()
-                        
+
                         reservaViewModel.crearReserva(
                             com.example.futbolnomade.domain.model.Reserva(
                                 canchaId = idCancha,
@@ -371,11 +377,12 @@ fun AppNavigation() {
                         )
                         navController.popBackStack()
                     },
-                    onVolver = { navController.popBackStack() }
+                    onVolver = {
+                        navController.popBackStack()
+                    }
                 )
             }
 
-            // ➕ CREAR CANCHA
             // ➕ CREAR CANCHA
             composable(Screen.CrearCancha.route) {
                 CrearCanchaScreen(
@@ -446,7 +453,25 @@ fun AppNavigation() {
                 )
             }
 
-            composable(Screen.Search.route)   { /* TODO: SearchScreen() */ }
+            composable(
+                route = Screen.Search.route,
+                arguments = listOf(navArgument("query") { 
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = ""
+                })
+            ) { backStackEntry ->
+                val initialQuery = backStackEntry.arguments?.getString("query")?.decodeFromRoute() ?: ""
+                
+                SearchScreen(
+                    initialQuery = initialQuery,
+                    partidos = partidoViewModel.partidosVisibles(),
+                    canchas = canchaViewModel.uiState.canchas,
+                    onVerDetallePartido = { id -> navController.navigate(Screen.DetallePartido.createRoute(id)) },
+                    onVerDetalleCancha = { id -> navController.navigate(Screen.DetalleCancha.createRoute(id)) },
+                    onVolver = { navController.popBackStack() }
+                )
+            }
             composable(Screen.Calendar.route) {
                 CalendarScreen(
                     emailUsuario = perfilViewModel.email,

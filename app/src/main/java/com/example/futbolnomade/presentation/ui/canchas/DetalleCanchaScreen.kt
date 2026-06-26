@@ -4,9 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -39,7 +36,7 @@ private val ColorSub = Color(0xFF999999)
 @Composable
 fun DetalleCanchaScreen(
     cancha: Cancha?,
-    reservasExistentes: List<Reserva> = emptyList(),
+    reservasConfirmadas: List<Reserva> = emptyList(),
     onReservarTurno: (canchaId: String, fecha: String, hora: String) -> Unit,
     onVolver: () -> Unit
 ) {
@@ -109,19 +106,13 @@ fun DetalleCanchaScreen(
         SimpleDateFormat("dd/MM/yyyy", Locale("es", "ES")).format(fechaSeleccionada.time)
     }
 
-    val turnosReservadosParaHoy = remember(reservasExistentes, fechaCompleta) {
-        reservasExistentes
-            .filter { it.fecha == fechaCompleta && it.estado != "Cancelada" && it.estado != "Rechazada" }
-            .map { it.hora }
-    }
-
     val tituloDia = "$diaSeleccionado $fechaTexto"
 
     val listadoTurnosDia = remember(
         cancha.horarios,
         cancha.horarioApertura,
         cancha.horarioCierre,
-        diasAdelante
+        diaSeleccionado
     ) {
         val turnos = mutableListOf<String>()
 
@@ -399,7 +390,12 @@ fun DetalleCanchaScreen(
                                                         )
                                         )
 
-                                val yaReservado = turnosReservadosParaHoy.contains(hora)
+                                val yaReservado =
+                                    reservasConfirmadas.any { reserva ->
+                                        reserva.fecha.trim() == fechaCompleta.trim() &&
+                                                reserva.hora.trim() == hora.trim() &&
+                                                reserva.estado.equals("Confirmada", ignoreCase = true)
+                                    }
                                 val deshabilitado = yaReservado || turnoYaPaso
                                 val esElSeleccionado = turnoSeleccionado == hora
 

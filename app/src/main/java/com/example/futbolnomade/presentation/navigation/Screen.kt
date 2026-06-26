@@ -12,7 +12,9 @@ sealed class Screen(val route: String) {
 
     object Elementos    : Screen("elementos")
     object Acerca       : Screen("acerca")
-    object Search       : Screen("search")
+    object Search       : Screen("search?query={query}") {
+        fun createRoute(query: String = "") = "search?query=${query.encodeForRoute()}"
+    }
     object Calendar     : Screen("calendar")
     object Perfil       : Screen("perfil")
     object EditarPerfil : Screen("editar_perfil")
