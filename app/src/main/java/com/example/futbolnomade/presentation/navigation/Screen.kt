@@ -5,9 +5,8 @@ sealed class Screen(val route: String) {
     object Login    : Screen("login")
     object Register : Screen("register")
 
-    object Home : Screen("home/{nombreUsuario}/{emailUsuario}") {
-        fun createRoute(nombre: String, email: String) =
-            "home/${nombre.encodeForRoute()}/${email.encodeForRoute()}"
+    object Home : Screen("home") {
+        fun createRoute(nombre: String, email: String) = "home"
     }
 
     object Elementos    : Screen("elementos")

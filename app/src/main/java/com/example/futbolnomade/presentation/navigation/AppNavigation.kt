@@ -113,19 +113,10 @@ fun AppNavigation() {
             }
 
             // 🏠 HOME
-            composable(
-                route = Screen.Home.route,
-                arguments = listOf(
-                    navArgument("nombreUsuario") { type = NavType.StringType },
-                    navArgument("emailUsuario")  { type = NavType.StringType }
-                )
-            ) { backStackEntry ->
-                val nombre = backStackEntry.arguments?.getString("nombreUsuario")?.decodeFromRoute() ?: ""
-                val email  = backStackEntry.arguments?.getString("emailUsuario")?.decodeFromRoute() ?: ""
-
+            composable(Screen.Home.route) {
                 HomeScreen(
-                    nombreUsuario       = nombre,
-                    emailUsuario        = email,
+                    nombreUsuario       = perfilViewModel.nombre,
+                    emailUsuario        = perfilViewModel.email,
                     homeViewModel       = homeViewModel,
                     onIrAPartidos       = { navController.navigate(Screen.Partidos.route) },
                     onIrACanchas        = { navController.navigate(Screen.Canchas.route) },
@@ -463,6 +454,11 @@ fun AppNavigation() {
             ) { backStackEntry ->
                 val initialQuery = backStackEntry.arguments?.getString("query")?.decodeFromRoute() ?: ""
                 
+                LaunchedEffect(Unit) {
+                    partidoViewModel.cargarPartidos()
+                    canchaViewModel.cargarTodasLasCanchas()
+                }
+
                 SearchScreen(
                     initialQuery = initialQuery,
                     partidos = partidoViewModel.partidosVisibles(),
