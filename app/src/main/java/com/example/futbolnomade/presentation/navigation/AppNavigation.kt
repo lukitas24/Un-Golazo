@@ -270,8 +270,18 @@ fun AppNavigation() {
                                             }
 
                                             is AuthResult.Error -> {
+                                                /*
+                                                 * Firebase rechazó las credenciales
+                                                 * cifradas. Dejamos de reutilizarlas
+                                                 * para evitar que el mismo error se
+                                                 * repita en cada intento biométrico.
+                                                 */
+                                                biometricLoginViewModel
+                                                    .unlinkAccount()
+
                                                 biometricError =
-                                                    result.mensaje
+                                                    "La credencial biométrica dejó de ser válida. " +
+                                                            "Ingresá con email y contraseña para vincularla nuevamente."
                                             }
                                         }
                                     }
@@ -870,6 +880,11 @@ fun AppNavigation() {
                 })
             ) { backStackEntry ->
                 val initialQuery = backStackEntry.arguments?.getString("query")?.decodeFromRoute() ?: ""
+
+                LaunchedEffect(Unit) {
+                    partidoViewModel.cargarPartidos()
+                    canchaViewModel.cargarTodasLasCanchas()
+                }
 
                 SearchScreen(
                     initialQuery = initialQuery,

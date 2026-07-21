@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.futbolnomade.data.repository.PartidoRepositoryImpl
 import com.example.futbolnomade.domain.model.EstadoPartido
 import com.example.futbolnomade.domain.model.Partido
+import com.example.futbolnomade.domain.model.obtenerFechaHoraInicioMillis
 import com.example.futbolnomade.domain.repository.PartidoRepository
 import com.example.futbolnomade.presentation.state.HomeUiState
 import com.example.futbolnomade.presentation.state.PartidoResumen
@@ -47,27 +48,26 @@ class HomeViewModel(
 
                 val partidos = repository.obtenerPartidos()
                     .filter { partido ->
+                        val inicioMillis = partido.obtenerFechaHoraInicioMillis()
 
                         val estadoValido =
                             partido.estado == EstadoPartido.PUBLICADO ||
                                     partido.estado == EstadoPartido.RESERVA_APROBADA
 
-                        val usuarioEstaAnotado =
-                            partido.usuariosAnotados.any { usuarioAnotado ->
-                                usuarioAnotado
-                                    .trim()
-                                    .lowercase() == emailUsuarioActual
-                            }
+                        val usuarioInvolucrado = emailUsuarioActual.isNotBlank() && (
+                                partido.creador.trim().lowercase() == emailUsuarioActual ||
+                                        partido.usuariosAnotados.any {
+                                            it.trim().lowercase() == emailUsuarioActual
+                                        }
+                                )
 
                         val partidoTodaviaNoOcurrio =
-                            partido.fechaHoraInicio > momentoActual
+                            inicioMillis > momentoActual
 
-                        estadoValido &&
-                                usuarioEstaAnotado &&
-                                partidoTodaviaNoOcurrio
+                        estadoValido && usuarioInvolucrado && partidoTodaviaNoOcurrio
                     }
                     .sortedBy { partido ->
-                        partido.fechaHoraInicio
+                        partido.obtenerFechaHoraInicioMillis()
                     }
                     .map { partido ->
                         partido.toResumen()

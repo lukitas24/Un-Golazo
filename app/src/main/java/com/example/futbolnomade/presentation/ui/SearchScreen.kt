@@ -50,7 +50,7 @@ fun SearchScreen(
     var tabSeleccionada by remember { mutableStateOf(0) } // 0: Partidos, 1: Canchas
 
     val partidosFiltrados = remember(query, partidos) {
-        if (query.isBlank()) emptyList()
+        if (query.isBlank()) partidos
         else partidos.filter { 
             it.titulo.contains(query, ignoreCase = true) || 
             it.ubicacion.contains(query, ignoreCase = true) ||
@@ -59,7 +59,7 @@ fun SearchScreen(
     }
 
     val canchasFiltradas = remember(query, canchas) {
-        if (query.isBlank()) emptyList()
+        if (query.isBlank()) canchas
         else canchas.filter { 
             it.nombre.contains(query, ignoreCase = true) || 
             it.ubicacion.contains(query, ignoreCase = true) 
@@ -117,42 +117,27 @@ fun SearchScreen(
         },
         containerColor = ColorFondo
     ) { padding ->
-        if (query.isBlank()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Search, null, tint = ColorSubtexto, modifier = Modifier.size(64.dp))
-                    Spacer(Modifier.height(16.dp))
-                    Text("Buscá por nombre o ubicación", color = ColorSubtexto)
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                if (tabSeleccionada == 0) {
-                    if (partidosFiltrados.isEmpty()) {
-                        item { EmptySearchMessage("No se encontraron partidos") }
-                    } else {
-                        items(partidosFiltrados) { partido ->
-                            PartidoCard(partido = partido, onClick = { onVerDetallePartido(partido.id) })
-                        }
-                    }
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (tabSeleccionada == 0) {
+                if (partidosFiltrados.isEmpty()) {
+                    item { EmptySearchMessage("No se encontraron partidos") }
                 } else {
-                    if (canchasFiltradas.isEmpty()) {
-                        item { EmptySearchMessage("No se encontraron canchas") }
-                    } else {
-                        items(canchasFiltradas) { cancha ->
-                            CanchaCard(cancha = cancha, onClick = { onVerDetalleCancha(cancha.id) })
-                        }
+                    items(partidosFiltrados) { partido ->
+                        PartidoCard(partido = partido, onClick = { onVerDetallePartido(partido.id) })
+                    }
+                }
+            } else {
+                if (canchasFiltradas.isEmpty()) {
+                    item { EmptySearchMessage("No se encontraron canchas") }
+                } else {
+                    items(canchasFiltradas) { cancha ->
+                        CanchaCard(cancha = cancha, onClick = { onVerDetalleCancha(cancha.id) })
                     }
                 }
             }

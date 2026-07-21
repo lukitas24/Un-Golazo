@@ -16,8 +16,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.futbolnomade.presentation.navigation.Screen
 
-private val VerdeOscuro = Color(0xFF121212) // Fondo más moderno (casi negro)
-private val VerdeNeon = Color(0xFF8BC34A)    // Color principal de la app
+private val VerdeOscuro = Color(0xFF121212)
+private val VerdeNeon = Color(0xFF8BC34A)
 
 @Composable
 fun AppBottomBar(
@@ -36,17 +36,22 @@ fun AppBottomBar(
         )
 
         items.forEach { (route, icon, label) ->
+            // Comprobación simple de ruta
             val isSelected = currentRoute == route
             
             NavigationBarItem(
                 selected = isSelected,
                 onClick = {
-                    if (!isSelected) {
-                        navController.navigate(route) {
-                            popUpTo(Screen.Home.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                    val targetRoute = if (route == Screen.Search.route) Screen.Search.createRoute() else route
+                    
+                    navController.navigate(targetRoute) {
+                        // Navegamos al destino y limpiamos la pila hasta el inicio real del grafo
+                        // para evitar acumular pantallas.
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
                         }
+                        launchSingleTop = true
+                        restoreState = true
                     }
                 },
                 icon = {
