@@ -25,8 +25,13 @@ class ReservaViewModel(
     fun cargarReservas(usuarioId: String) {
         viewModelScope.launch {
             uiState = uiState.copy(isLoading = true)
-            repository.obtenerReservasPorUsuario(usuarioId).collect { lista ->
-                uiState = uiState.copy(reservas = lista, isLoading = false)
+            try {
+                repository.obtenerReservasPorUsuario(usuarioId).collect { lista ->
+                    uiState = uiState.copy(reservas = lista, isLoading = false)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                uiState = uiState.copy(isLoading = false)
             }
         }
     }
@@ -34,13 +39,18 @@ class ReservaViewModel(
     fun cargarReservasPorCancha(canchaId: String) {
         viewModelScope.launch {
             uiState = uiState.copy(isLoading = true)
-            repository.obtenerReservasPorCancha(canchaId).collect { lista ->
-                // Filtramos las anteriores de esta misma cancha para no duplicar ni mantener obsoletas
-                val otrasReservas = uiState.reservas.filter { it.canchaId != canchaId }
-                uiState = uiState.copy(
-                    reservas = (otrasReservas + lista).distinctBy { it.id },
-                    isLoading = false
-                )
+            try {
+                repository.obtenerReservasPorCancha(canchaId).collect { lista ->
+                    // Filtramos las anteriores de esta misma cancha para no duplicar ni mantener obsoletas
+                    val otrasReservas = uiState.reservas.filter { it.canchaId != canchaId }
+                    uiState = uiState.copy(
+                        reservas = (otrasReservas + lista).distinctBy { it.id },
+                        isLoading = false
+                    )
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                uiState = uiState.copy(isLoading = false)
             }
         }
     }

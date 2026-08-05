@@ -7,6 +7,8 @@ data class PartidoResumen(
     val fecha: String,
     val anfitrion: String,
     val rating: Float,
+    val latitud: Double? = null,
+    val longitud: Double? = null,
     val imageRes: Int? = null
 )
 

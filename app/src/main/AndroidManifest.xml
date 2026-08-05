@@ -8,9 +8,11 @@
     <!-- 2. Permisos para saber dónde está el usuario (clave para buscar canchas "cerca") -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <!-- permisos biometricos -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-permission
         android:name="android.permission.USE_FINGERPRINT"
@@ -64,6 +66,11 @@
             </intent-filter>
 
         </activity>
+
+        <receiver
+            android:name=".location.GeofenceBroadcastReceiver"
+            android:enabled="true"
+            android:exported="true" />
 
     </application>
 </manifest>

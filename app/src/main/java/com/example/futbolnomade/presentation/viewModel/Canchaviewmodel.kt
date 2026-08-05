@@ -39,9 +39,18 @@ class CanchaViewModel(
         currentCanchasJob?.cancel()
 
         currentCanchasJob = viewModelScope.launch {
-            repository.getCanchas(userId).collect { canchas ->
+            try {
+                repository.getCanchas(userId).collect { canchas ->
+                    uiState = uiState.copy(
+                        canchas = canchas,
+                        isLoading = false
+                    )
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
                 uiState = uiState.copy(
-                    canchas = canchas
+                    isLoading = false
+                    // Aquí podrías agregar un campo de error al uiState si fuera necesario
                 )
             }
         }
@@ -51,9 +60,17 @@ class CanchaViewModel(
         currentCanchasJob?.cancel()
 
         currentCanchasJob = viewModelScope.launch {
-            repository.getAllCanchas().collect { canchas ->
+            try {
+                repository.getAllCanchas().collect { canchas ->
+                    uiState = uiState.copy(
+                        canchas = canchas,
+                        isLoading = false
+                    )
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
                 uiState = uiState.copy(
-                    canchas = canchas
+                    isLoading = false
                 )
             }
         }
@@ -75,20 +92,24 @@ class CanchaViewModel(
         }
 
         reservasCanchaJob = viewModelScope.launch {
-            reservaRepository
-                .obtenerReservasPorCancha(canchaId)
-                .collect { reservas ->
+            try {
+                reservaRepository
+                    .obtenerReservasPorCancha(canchaId)
+                    .collect { reservas ->
 
-                    reservasConfirmadasCancha =
-                        reservas.filter { reserva ->
-                            reserva.estado
-                                .trim()
-                                .equals(
-                                    "Confirmada",
-                                    ignoreCase = true
-                                )
-                        }
-                }
+                        reservasConfirmadasCancha =
+                            reservas.filter { reserva ->
+                                reserva.estado
+                                    .trim()
+                                    .equals(
+                                        "Confirmada",
+                                        ignoreCase = true
+                                    )
+                            }
+                    }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 

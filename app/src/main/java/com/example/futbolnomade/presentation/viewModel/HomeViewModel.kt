@@ -95,7 +95,9 @@ class HomeViewModel(
             horario = horario,
             fecha = fecha,
             anfitrion = creador,
-            rating = calificacionCreador.toFloat()
+            rating = calificacionCreador.toFloat(),
+            latitud = latitud,
+            longitud = longitud
         )
     }
 }

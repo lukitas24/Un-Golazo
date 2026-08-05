@@ -32,9 +32,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import com.example.futbolnomade.location.GeofenceHelper
 import com.example.futbolnomade.presentation.state.PartidoResumen
 import com.example.futbolnomade.presentation.viewModel.HomeViewModel
 import com.example.futbolnomade.presentation.viewModel.ValoracionViewModel
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 
 private val ColorFondo       = Color(0xFF1A1A1A)
 private val ColorTarjeta     = Color(0xFF242424)
@@ -69,6 +77,47 @@ fun HomeScreen(
 ) {
     val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
     var mostrarPopupValoracion by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val geofenceHelper = remember { GeofenceHelper(context) }
+
+    // Launcher para permisos de ubicación y notificaciones
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineLocationGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+        if (fineLocationGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Si tenemos Fine Location, podemos intentar pedir Background Location
+            // (En una app real, esto debería explicarse al usuario primero)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val permissionsToRequest = mutableListOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        
+        permissionLauncher.launch(permissionsToRequest.toTypedArray())
+    }
+
+    // Registrar Geofences para los próximos partidos
+    LaunchedEffect(uiState.proximosPartidos) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            geofenceHelper.removeAllGeofences() // Limpiamos anteriores
+            uiState.proximosPartidos.forEach { partido ->
+                if (partido.latitud != null && partido.longitud != null) {
+                    geofenceHelper.addGeofence(
+                        id = partido.titulo,
+                        lat = partido.latitud,
+                        lng = partido.longitud
+                    )
+                }
+            }
+        }
+    }
 
     LaunchedEffect(nombreUsuario, emailUsuario) {
         homeViewModel.inicializar(nombreUsuario, emailUsuario)
