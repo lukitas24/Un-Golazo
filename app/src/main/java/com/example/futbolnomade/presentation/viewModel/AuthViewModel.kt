@@ -1,14 +1,17 @@
 package com.example.futbolnomade.presentation.viewModel
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.futbolnomade.data.repository.JugadorRepositoryImpl
+import com.example.futbolnomade.data.repository.NotificationRepositoryImpl
 import com.example.futbolnomade.data.security.BiometricCredentials
 import com.example.futbolnomade.domain.model.Jugador
 import com.example.futbolnomade.domain.repository.JugadorRepository
+import com.example.futbolnomade.domain.repository.NotificationRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.coroutines.launch
@@ -31,7 +34,10 @@ sealed class AuthResult {
 
 class AuthViewModel(
     private val jugadorRepository: JugadorRepository =
-        JugadorRepositoryImpl()
+        JugadorRepositoryImpl(),
+
+    private val notificationRepository: NotificationRepository =
+        NotificationRepositoryImpl()
 ) : ViewModel() {
 
     private val auth: FirebaseAuth =
@@ -41,9 +47,8 @@ class AuthViewModel(
         private set
 
     /*
-     * Solo vive en memoria. Pasar la app a segundo plano no lo borra.
-     * Al destruirse el proceso, la nueva ejecución vuelve a empezar
-     * en la pantalla de Login.
+     * Solo vive en memoria.
+     * Pasar la app a segundo plano no lo borra.
      */
     var accesoDesbloqueado by mutableStateOf(false)
         private set
@@ -58,9 +63,10 @@ class AuthViewModel(
         password: String,
         onResult: (AuthResult) -> Unit
     ) {
-        val cleanEmail = email
-            .trim()
-            .lowercase()
+        val cleanEmail =
+            email
+                .trim()
+                .lowercase()
 
         viewModelScope.launch {
             try {
@@ -70,6 +76,13 @@ class AuthViewModel(
                 ).await()
 
                 actualizarUsuarioDesdeFirebase()
+
+                /*
+                 * Asocia el token FCM de este teléfono
+                 * con el UID que acaba de iniciar sesión.
+                 */
+                registrarDispositivoActual()
+
                 accesoDesbloqueado = true
 
                 onResult(AuthResult.Success)
@@ -93,8 +106,7 @@ class AuthViewModel(
         viewModelScope.launch {
             try {
                 /*
-                 * Puede haber quedado otra cuenta activa en Firebase.
-                 * La cerramos antes de recuperar la cuenta biométrica.
+                 * Puede haber quedado otra cuenta activa.
                  */
                 auth.signOut()
 
@@ -103,10 +115,11 @@ class AuthViewModel(
                     credentials.password
                 ).await()
 
-                val firebaseUser = auth.currentUser
-                    ?: throw IllegalStateException(
-                        "Firebase no devolvió un usuario."
-                    )
+                val firebaseUser =
+                    auth.currentUser
+                        ?: throw IllegalStateException(
+                            "Firebase no devolvió un usuario."
+                        )
 
                 if (firebaseUser.uid != credentials.uid) {
                     auth.signOut()
@@ -117,6 +130,13 @@ class AuthViewModel(
                 }
 
                 actualizarUsuarioDesdeFirebase()
+
+                /*
+                 * También registra el teléfono cuando
+                 * se ingresa usando biometría.
+                 */
+                registrarDispositivoActual()
+
                 accesoDesbloqueado = true
 
                 onResult(AuthResult.Success)
@@ -140,10 +160,13 @@ class AuthViewModel(
         password: String,
         onResult: (AuthResult) -> Unit
     ) {
-        val cleanName = nombre.trim()
-        val cleanEmail = email
-            .trim()
-            .lowercase()
+        val cleanName =
+            nombre.trim()
+
+        val cleanEmail =
+            email
+                .trim()
+                .lowercase()
 
         viewModelScope.launch {
             try {
@@ -153,7 +176,11 @@ class AuthViewModel(
                         password
                     ).await()
 
-                val firebaseUser = authResult.user
+                val firebaseUser =
+                    authResult.user
+                        ?: throw IllegalStateException(
+                            "Firebase no devolvió el usuario registrado."
+                        )
 
                 val profileUpdates =
                     UserProfileChangeRequest.Builder()
@@ -161,24 +188,32 @@ class AuthViewModel(
                         .build()
 
                 firebaseUser
-                    ?.updateProfile(profileUpdates)
-                    ?.await()
+                    .updateProfile(profileUpdates)
+                    .await()
 
-                val nuevoJugador = Jugador(
-                    id = firebaseUser?.uid.orEmpty(),
-                    nombre = cleanName,
-                    email = cleanEmail
-                )
+                val nuevoJugador =
+                    Jugador(
+                        id = firebaseUser.uid,
+                        nombre = cleanName,
+                        email = cleanEmail
+                    )
 
                 jugadorRepository.guardarJugador(
                     nuevoJugador
                 )
 
-                usuarioActual = Usuario(
-                    nombre = cleanName,
-                    email = cleanEmail,
-                    uid = firebaseUser?.uid.orEmpty()
-                )
+                usuarioActual =
+                    Usuario(
+                        nombre = cleanName,
+                        email = cleanEmail,
+                        uid = firebaseUser.uid
+                    )
+
+                /*
+                 * Registra el dispositivo después de
+                 * crear la cuenta.
+                 */
+                registrarDispositivoActual()
 
                 accesoDesbloqueado = true
 
@@ -196,21 +231,105 @@ class AuthViewModel(
         }
     }
 
-    private fun actualizarUsuarioDesdeFirebase() {
-        usuarioActual = auth.currentUser?.let { firebaseUser ->
-            Usuario(
-                nombre = firebaseUser.displayName.orEmpty(),
-                email = firebaseUser.email.orEmpty(),
-                uid = firebaseUser.uid
+    /**
+     * Obtiene el token actual de Firebase Messaging y lo guarda en:
+     *
+     * jugadores/{uid}/dispositivos/{hashToken}
+     *
+     * Si falla, no impide que el usuario ingrese.
+     */
+    private suspend fun registrarDispositivoActual() {
+        val uid =
+            auth.currentUser
+                ?.uid
+                ?: return
+
+        try {
+            notificationRepository
+                .registrarDispositivo(
+                    uid
+                )
+
+            Log.d(
+                "FutbolNomadeFCM",
+                "Dispositivo asociado correctamente al usuario $uid"
+            )
+        } catch (exception: Exception) {
+            Log.e(
+                "FutbolNomadeFCM",
+                "No se pudo asociar el dispositivo con el usuario.",
+                exception
             )
         }
     }
 
-    fun logout() {
-        auth.signOut()
+    private fun actualizarUsuarioDesdeFirebase() {
+        usuarioActual =
+            auth.currentUser?.let { firebaseUser ->
+                Usuario(
+                    nombre =
+                        firebaseUser
+                            .displayName
+                            .orEmpty(),
 
-        usuarioActual = null
-        accesoDesbloqueado = false
+                    email =
+                        firebaseUser
+                            .email
+                            .orEmpty(),
+
+                    uid =
+                        firebaseUser.uid
+                )
+            }
+    }
+
+    /**
+     * Primero elimina la asociación del token FCM y después
+     * cierra Firebase Auth.
+     *
+     * Es importante respetar ese orden porque las reglas de
+     * Firestore necesitan que el usuario siga autenticado para
+     * eliminar jugadores/{uid}/dispositivos/{deviceId}.
+     */
+    fun logout(
+        onComplete: () -> Unit = {}
+    ) {
+        val uid =
+            auth.currentUser
+                ?.uid
+
+        viewModelScope.launch {
+            try {
+                if (!uid.isNullOrBlank()) {
+                    notificationRepository
+                        .eliminarDispositivo(
+                            uid
+                        )
+
+                    Log.d(
+                        "FutbolNomadeFCM",
+                        "Dispositivo eliminado del usuario $uid"
+                    )
+                }
+            } catch (exception: Exception) {
+                /*
+                 * Aunque no se pueda borrar el token,
+                 * igualmente cerramos la sesión.
+                 */
+                Log.e(
+                    "FutbolNomadeFCM",
+                    "No se pudo eliminar el dispositivo antes del logout.",
+                    exception
+                )
+            }
+
+            auth.signOut()
+
+            usuarioActual = null
+            accesoDesbloqueado = false
+
+            onComplete()
+        }
     }
 
     fun actualizarUsuarioActual(
@@ -218,16 +337,19 @@ class AuthViewModel(
         email: String,
         password: String
     ) {
-        val firebaseUser = auth.currentUser
-            ?: return
+        val firebaseUser =
+            auth.currentUser
+                ?: return
 
         viewModelScope.launch {
             try {
-                val cleanName = nombre.trim()
+                val cleanName =
+                    nombre.trim()
 
-                val cleanEmail = email
-                    .trim()
-                    .lowercase()
+                val cleanEmail =
+                    email
+                        .trim()
+                        .lowercase()
 
                 if (cleanName.isNotBlank()) {
                     val profileUpdates =
@@ -258,30 +380,46 @@ class AuthViewModel(
                         .await()
                 }
 
-                val jugadorActualizado = Jugador(
-                    id = firebaseUser.uid,
-                    nombre = cleanName.ifBlank {
-                        firebaseUser.displayName.orEmpty()
-                    },
-                    email = cleanEmail.ifBlank {
-                        firebaseUser.email.orEmpty()
-                    }
-                )
+                val jugadorActualizado =
+                    Jugador(
+                        id = firebaseUser.uid,
+
+                        nombre =
+                            cleanName.ifBlank {
+                                firebaseUser
+                                    .displayName
+                                    .orEmpty()
+                            },
+
+                        email =
+                            cleanEmail.ifBlank {
+                                firebaseUser
+                                    .email
+                                    .orEmpty()
+                            }
+                    )
 
                 jugadorRepository.guardarJugador(
                     jugadorActualizado
                 )
 
-                usuarioActual = Usuario(
-                    nombre = jugadorActualizado.nombre,
-                    email = jugadorActualizado.email,
-                    uid = firebaseUser.uid
+                usuarioActual =
+                    Usuario(
+                        nombre =
+                            jugadorActualizado.nombre,
+
+                        email =
+                            jugadorActualizado.email,
+
+                        uid =
+                            firebaseUser.uid
+                    )
+            } catch (exception: Exception) {
+                Log.e(
+                    "AuthViewModel",
+                    "No se pudo actualizar el usuario.",
+                    exception
                 )
-            } catch (_: Exception) {
-                /*
-                 * Después se puede exponer un estado de error
-                 * para mostrarlo en EditarPerfilScreen.
-                 */
             }
         }
     }

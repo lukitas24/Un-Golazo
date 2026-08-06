@@ -57,6 +57,8 @@ import com.example.futbolnomade.presentation.viewModel.PartidoViewModel
 import com.example.futbolnomade.presentation.viewModel.PerfilViewModel
 import com.example.futbolnomade.presentation.viewModel.ReservaViewModel
 import com.example.futbolnomade.presentation.viewModel.ValoracionViewModel
+import com.example.futbolnomade.presentation.notification.NotificationPermissionRequester
+import com.example.futbolnomade.presentation.notification.NotificationTarget
 
 
 private data class PendingBiometricEnrollment(
@@ -72,7 +74,10 @@ private val rutasSinBottomBar = setOf(
 )
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(
+    notificationTarget: NotificationTarget? = null,
+    onNotificationHandled: () -> Unit = {}
+) {
 
     val navController  = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -87,6 +92,11 @@ fun AppNavigation() {
     val reservaViewModel: ReservaViewModel = viewModel()
     val valoracionViewModel: ValoracionViewModel = viewModel()
 
+    NotificationPermissionRequester(
+        enabled =
+            authViewModel.accesoDesbloqueado
+    )
+
     val activity =
         LocalActivity.current as? FragmentActivity
 
@@ -100,6 +110,28 @@ fun AppNavigation() {
         mutableStateOf<String?>(null)
     }
 
+    fun notificationRoute(
+        target: NotificationTarget?
+    ): String? {
+        val partidoId =
+            target?.partidoId
+
+        if (!partidoId.isNullOrBlank()) {
+            return Screen.DetallePartido
+                .createRoute(partidoId)
+        }
+
+        val canchaId =
+            target?.canchaId
+
+        if (!canchaId.isNullOrBlank()) {
+            return Screen.DetalleCancha
+                .createRoute(canchaId)
+        }
+
+        return null
+    }
+
     fun navigateToHome(
         nombre: String,
         email: String
@@ -109,14 +141,26 @@ fun AppNavigation() {
             email
         )
 
+        val destination =
+            notificationRoute(
+                notificationTarget
+            ) ?: Screen.Home.route
+
         navController.navigate(
-            Screen.Home.route
+            destination
         ) {
             popUpTo(Screen.Login.route) {
                 inclusive = true
             }
+
+            launchSingleTop = true
+        }
+
+        if (notificationTarget != null) {
+            onNotificationHandled()
         }
     }
+
 
     fun showShortMessage(message: String) {
         activity?.let { currentActivity ->
@@ -135,6 +179,35 @@ fun AppNavigation() {
                     perfilViewModel.email
                 )
         }
+    }
+
+    LaunchedEffect(
+        notificationTarget
+    ) {
+        val target =
+            notificationTarget
+                ?: return@LaunchedEffect
+
+        val usuarioEstaDentro =
+            perfilViewModel.email.isNotBlank() &&
+                    currentRoute != Screen.Login.route &&
+                    currentRoute != Screen.Register.route
+
+        if (!usuarioEstaDentro) {
+            return@LaunchedEffect
+        }
+
+        notificationRoute(target)?.let {
+                destination ->
+
+            navController.navigate(
+                destination
+            ) {
+                launchSingleTop = true
+            }
+        }
+
+        onNotificationHandled()
     }
 
     Scaffold(
@@ -484,10 +557,10 @@ fun AppNavigation() {
                 RegisterScreen(
                     authViewModel = authViewModel,
                     onRegistroExitoso = { nombre, email ->
-                        perfilViewModel.inicializar(nombre, email)
-                        navController.navigate(Screen.Home.createRoute(nombre, email)) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
-                        }
+                        navigateToHome(
+                            nombre,
+                            email
+                        )
                     },
                     onVolver = { navController.popBackStack() }
                 )
@@ -769,6 +842,11 @@ fun AppNavigation() {
                 val cancha   = canchaViewModel.uiState.canchas.find { it.id == canchaId }
 
                 LaunchedEffect(canchaId) {
+                    /*
+                     * Al abrir esta pantalla desde una notificación, la lista de
+                     * canchas puede no estar cargada todavía.
+                     */
+                    canchaViewModel.cargarTodasLasCanchas()
                     reservaViewModel.cargarReservasPorCancha(canchaId)
                 }
 
@@ -959,23 +1037,20 @@ fun AppNavigation() {
                     },
 
                     onCerrarSesion = {
-                        /*
-                         * Cierra Firebase, pero NO borra la cuenta
-                         * biométrica cifrada.
-                         */
-                        authViewModel.logout()
-                        perfilViewModel.limpiar()
+                        authViewModel.logout {
+                            perfilViewModel.limpiar()
 
-                        navController.navigate(
-                            Screen.Login.route
-                        ) {
-                            popUpTo(
-                                navController.graph.id
+                            navController.navigate(
+                                Screen.Login.route
                             ) {
-                                inclusive = true
-                            }
+                                popUpTo(
+                                    navController.graph.id
+                                ) {
+                                    inclusive = true
+                                }
 
-                            launchSingleTop = true
+                                launchSingleTop = true
+                            }
                         }
                     }
                 )
