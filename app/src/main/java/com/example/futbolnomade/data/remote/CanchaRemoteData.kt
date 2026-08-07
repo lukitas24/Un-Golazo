@@ -37,12 +37,18 @@ class CanchaRemoteDataSource {
     }
 
     suspend fun guardarCancha(cancha: Cancha) {
-        val ref = if (cancha.id.isEmpty())
-            db.collection("canchas").document()
-        else
-            db.collection("canchas").document(cancha.id)
+        try {
+            val ref = if (cancha.id.isEmpty())
+                db.collection("canchas").document()
+            else
+                db.collection("canchas").document(cancha.id)
 
-        ref.set(cancha.copy(id = ref.id)).await()
+            ref.set(cancha.copy(id = ref.id)).await()
+            println("FIREBASE_DEBUG: Cancha guardada con éxito: ${cancha.nombre}")
+        } catch (e: Exception) {
+            println("FIREBASE_DEBUG: Error al guardar cancha: ${e.message}")
+            e.printStackTrace()
+        }
     }
 
     suspend fun eliminarCancha(id: String) {

@@ -35,8 +35,10 @@ class PartidoRemoteDataSource {
             }
             val partidoConId = partido.copy(id = docRef.id)
             docRef.set(partidoConId).await()
+            println("FIREBASE_DEBUG: Partido guardado con éxito: ${partido.titulo}")
         } catch (e: Exception) {
-            // Manejar error
+            println("FIREBASE_DEBUG: Error al crear partido: ${e.message}")
+            e.printStackTrace()
         }
     }
 

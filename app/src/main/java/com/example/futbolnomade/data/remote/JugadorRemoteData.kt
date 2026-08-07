@@ -20,8 +20,10 @@ class JugadorRemoteDataSource {
     suspend fun guardarJugador(jugador: Jugador) {
         try {
             jugadoresCollection.document(jugador.id).set(jugador).await()
+            println("FIREBASE_DEBUG: Jugador guardado con éxito: ${jugador.email}")
         } catch (e: Exception) {
-            // Manejar error
+            println("FIREBASE_DEBUG: Error al guardar jugador: ${e.message}")
+            e.printStackTrace()
         }
     }
 
