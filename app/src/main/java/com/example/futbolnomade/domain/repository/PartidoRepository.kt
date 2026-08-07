@@ -1,5 +1,6 @@
 package com.example.futbolnomade.domain.repository
 
+import com.example.futbolnomade.domain.model.EstadoPartido
 import com.example.futbolnomade.domain.model.Partido
 
 interface PartidoRepository {
@@ -10,11 +11,23 @@ interface PartidoRepository {
 
     suspend fun crearPartido(partido: Partido)
 
+    /*
+     * Para futuras pantallas de edición.
+     * Se diferencia de crearPartido para que la intención quede clara.
+     */
+    suspend fun actualizarPartido(partido: Partido)
+
+    suspend fun actualizarEstadoPartido(
+        partidoId: String,
+        nuevoEstado: EstadoPartido
+    )
+
     suspend fun eliminarPartido(id: String)
 
     suspend fun anotarseAPartido(
         partidoId: String,
-        usuario: String
+        usuario: String,
+        usuarioUid: String
     ): Boolean
 
     suspend fun eliminarJugador(
@@ -25,6 +38,7 @@ interface PartidoRepository {
 
     suspend fun cancelarInscripcion(
         partidoId: String,
-        usuario: String
+        usuario: String,
+        usuarioUid: String
     ): Boolean
 }

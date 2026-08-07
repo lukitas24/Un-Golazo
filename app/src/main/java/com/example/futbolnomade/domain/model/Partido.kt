@@ -20,14 +20,31 @@ data class Partido(
     val dificultad: String = "",
     val participantesActuales: Int = 0,
     val participantesMaximos: Int = 0,
+
+    /*
+     * Se mantienen los emails por compatibilidad con el código
+     * y con los partidos que ya existen en Firestore.
+     */
     val creador: String = "",
+    val usuariosAnotados: List<String> = emptyList(),
+
+    /*
+     * Nuevos campos usados para poder dirigir notificaciones FCM
+     * al usuario correcto.
+     *
+     * usuariosAnotadosUids mantiene el mismo orden que
+     * usuariosAnotados. En partidos viejos puede estar vacío.
+     */
+    val creadorUid: String = "",
+    val usuariosAnotadosUids: List<String> = emptyList(),
+
     val calificacionCreador: Double = 0.0,
     val descripcion: String = "",
-    val usuariosAnotados: List<String> = emptyList(),
 
     val canchaId: String? = null,
     val nombreCancha: String? = null,
     val latitud: Double? = null,
     val longitud: Double? = null,
+
     val estado: EstadoPartido = EstadoPartido.PUBLICADO
 )

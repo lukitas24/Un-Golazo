@@ -43,6 +43,8 @@ import com.example.futbolnomade.presentation.viewModel.HomeViewModel
 import com.example.futbolnomade.presentation.viewModel.ValoracionViewModel
 import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
+import androidx.compose.material.icons.filled.Notifications
+import com.example.futbolnomade.presentation.notification.AppNotificationHelper
 
 private val ColorFondo       = Color(0xFF1A1A1A)
 private val ColorTarjeta     = Color(0xFF242424)
@@ -99,7 +101,7 @@ fun HomeScreen(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
         }
-        
+
         permissionLauncher.launch(permissionsToRequest.toTypedArray())
     }
 
@@ -163,6 +165,36 @@ fun HomeScreen(
             }
 
             item {
+                Button(
+                    onClick = {
+                        AppNotificationHelper.showNotification(
+                            context = context,
+                            title = "Prueba de notificación",
+                            message = "¡Las notificaciones de Fútbol Nómade funcionan!",
+                            tipo = "PRUEBA"
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ColorVerde
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = null
+                    )
+
+                    Spacer(Modifier.width(8.dp))
+
+                    Text(
+                        text = "Probar notificación",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.DateRange,
@@ -200,7 +232,7 @@ fun HomeScreen(
     if (mostrarPopupValoracion) {
         val promedioOrg = valoracionViewModel.obtenerPromedioOrganizador(emailUsuario)
         val cantidadOrg = valoracionViewModel.obtenerCantidadValoracionesOrganizador(emailUsuario)
-        
+
         val promedioJug = valoracionViewModel.obtenerPromedioJugador(emailUsuario)
         val cantidadJug = valoracionViewModel.obtenerCantidadValoracionesJugador(emailUsuario)
 
@@ -224,9 +256,9 @@ fun HomeScreen(
                         promedio = promedioOrg,
                         cantidad = cantidadOrg
                     )
-                    
+
                     HorizontalDivider(color = ColorBorde)
-                    
+
                     SeccionValoracionPopup(
                         titulo = "Como Jugador",
                         promedio = promedioJug,
@@ -259,16 +291,16 @@ private fun SeccionValoracionPopup(
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium
         )
-        
+
         Spacer(Modifier.height(8.dp))
-        
+
         Text(
             text = String.format(java.util.Locale.getDefault(), "%.1f", promedio),
             color = ColorVerde,
             fontSize = 36.sp,
             fontWeight = FontWeight.Bold
         )
-        
+
         Row(modifier = Modifier.padding(vertical = 4.dp)) {
             repeat(5) { index ->
                 val starColor = if (index < promedio.toInt()) Color(0xFFFFD700) else Color(0xFF2E2E2E)
@@ -280,7 +312,7 @@ private fun SeccionValoracionPopup(
                 )
             }
         }
-        
+
         Text(
             text = "$cantidad valoraciones",
             color = ColorSubtexto,

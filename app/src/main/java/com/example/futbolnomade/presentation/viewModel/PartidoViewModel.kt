@@ -17,11 +17,18 @@ import com.example.futbolnomade.presentation.state.PartidoUiState
 import kotlinx.coroutines.launch
 
 class PartidoViewModel(
-    private val repository: PartidoRepository = PartidoRepositoryImpl(),
-    private val reservaRepository: ReservaRepository = ReservaRepositoryImpl()
+    private val repository:
+    PartidoRepository =
+        PartidoRepositoryImpl(),
+
+    private val reservaRepository:
+    ReservaRepository =
+        ReservaRepositoryImpl()
 ) : ViewModel() {
 
-    var uiState by mutableStateOf(PartidoUiState())
+    var uiState by mutableStateOf(
+        PartidoUiState()
+    )
         private set
 
     init {
@@ -30,71 +37,78 @@ class PartidoViewModel(
 
     fun cargarPartidos() {
         viewModelScope.launch {
-            val partidos = repository.obtenerPartidos()
+            val partidos =
+                repository.obtenerPartidos()
 
-            uiState = uiState.copy(
-                partidos = partidos
-            )
+            uiState =
+                uiState.copy(
+                    partidos = partidos
+                )
         }
     }
 
     /*
-     * Se mantiene esta función por si otra pantalla
-     * todavía utiliza misPartidos().
-     *
-     * Ahora devuelve tanto los partidos creados por el usuario
-     * como aquellos en los que está anotado.
+     * Se mantiene esta función por compatibilidad con las pantallas
+     * que todavía utilizan misPartidos().
      */
     fun misPartidos(
         emailUsuario: String
     ): List<Partido> {
-        return partidosDelUsuario(emailUsuario)
+        return partidosDelUsuario(
+            emailUsuario
+        )
     }
 
     /*
      * Devuelve:
-     *
-     * 1. Los partidos que creó el usuario.
-     * 2. Los partidos en los que se anotó.
-     *
-     * Se ignoran mayúsculas, minúsculas y espacios.
+     * 1. Los partidos creados por el usuario.
+     * 2. Los partidos en los que está anotado.
      */
     fun partidosDelUsuario(
         emailUsuario: String
     ): List<Partido> {
-        val emailNormalizado = emailUsuario
-            .trim()
 
-        return uiState.partidos.filter { partido ->
+        val emailNormalizado =
+            emailUsuario.trim()
 
-            val esCreador = partido.creador
-                .trim()
-                .equals(
-                    emailNormalizado,
-                    ignoreCase = true
-                )
+        return uiState.partidos.filter {
+                partido ->
 
-            val estaAnotado = partido.usuariosAnotados.any { usuarioAnotado ->
-                usuarioAnotado
+            val esCreador =
+                partido.creador
                     .trim()
                     .equals(
                         emailNormalizado,
                         ignoreCase = true
                     )
-            }
+
+            val estaAnotado =
+                partido.usuariosAnotados.any {
+                        usuarioAnotado ->
+
+                    usuarioAnotado
+                        .trim()
+                        .equals(
+                            emailNormalizado,
+                            ignoreCase = true
+                        )
+                }
 
             esCreador || estaAnotado
         }
     }
 
     /*
-     * Estos son los partidos que pueden mostrarse
-     * públicamente para que otros usuarios se anoten.
+     * Partidos visibles públicamente.
      */
     fun partidosVisibles(): List<Partido> {
-        return uiState.partidos.filter { partido ->
-            partido.estado == EstadoPartido.PUBLICADO ||
-                    partido.estado == EstadoPartido.RESERVA_APROBADA
+        return uiState.partidos.filter {
+                partido ->
+
+            partido.estado ==
+                    EstadoPartido.PUBLICADO ||
+                    partido.estado ==
+                    EstadoPartido.RESERVA_APROBADA
         }
     }
 
@@ -106,8 +120,18 @@ class PartidoViewModel(
         dificultad: String,
         participantes: Int,
         descripcion: String,
+
+        /*
+         * Mantenemos el email porque el resto de la aplicación
+         * todavía lo utiliza.
+         */
         creador: String,
+
+        /*
+         * Nuevo: UID de Firebase Auth.
+         */
         creadorUid: String,
+
         canchaId: String? = null,
         nombreCancha: String? = null,
         latitud: Double? = null,
@@ -124,70 +148,148 @@ class PartidoViewModel(
                         ignoreCase = true
                     ) == true
 
-            val estadoInicial = when {
-                canchaId == null -> {
-                    EstadoPartido.PUBLICADO
+            val estadoInicial =
+                when {
+                    canchaId == null -> {
+                        EstadoPartido.PUBLICADO
+                    }
+
+                    esDuenioCancha -> {
+                        EstadoPartido.RESERVA_APROBADA
+                    }
+
+                    else -> {
+                        EstadoPartido.PENDIENTE_RESERVA
+                    }
                 }
 
-                esDuenioCancha -> {
-                    EstadoPartido.RESERVA_APROBADA
-                }
-
-                else -> {
-                    EstadoPartido.PENDIENTE_RESERVA
-                }
-            }
-
-            val fechaHoraInicio = calcularFechaHoraInicioMillis(
-                fecha = fecha,
-                horario = horario
-            )
-
-            val partidoId = System
-                .currentTimeMillis()
-                .toString()
-
-            val nuevoPartido = Partido(
-                id = partidoId,
-                titulo = titulo,
-                horario = horario,
-                fecha = fecha,
-                fechaHoraInicio = fechaHoraInicio,
-                ubicacion = ubicacion,
-                dificultad = dificultad,
-                participantesActuales = 1,
-                participantesMaximos = participantes,
-                creador = creador,
-                calificacionCreador = 5.0,
-                descripcion = descripcion,
-                usuariosAnotados = listOf(creador),
-                canchaId = canchaId,
-                nombreCancha = nombreCancha,
-                latitud = latitud,
-                longitud = longitud,
-                estado = estadoInicial
-            )
-
-            repository.crearPartido(nuevoPartido)
-
-            if (canchaId != null) {
-                val reserva = Reserva(
-                    canchaId = canchaId,
-                    canchaNombre = nombreCancha ?: "",
-                    usuarioId = creadorUid,
-                    usuarioNombre = creador,
+            val fechaHoraInicio =
+                calcularFechaHoraInicioMillis(
                     fecha = fecha,
-                    hora = horario,
-                    estado = if (esDuenioCancha) {
-                        "Confirmada"
-                    } else {
-                        "Pendiente"
-                    },
-                    partidoId = partidoId
+                    horario = horario
                 )
 
-                reservaRepository.crearReserva(reserva)
+            val partidoId =
+                System
+                    .currentTimeMillis()
+                    .toString()
+
+            val nuevoPartido =
+                Partido(
+                    id = partidoId,
+
+                    titulo = titulo,
+                    horario = horario,
+                    fecha = fecha,
+
+                    fechaHoraInicio =
+                        fechaHoraInicio,
+
+                    ubicacion = ubicacion,
+                    dificultad = dificultad,
+
+                    participantesActuales = 1,
+                    participantesMaximos =
+                        participantes,
+
+                    creador = creador,
+
+                    /*
+                     * Datos nuevos para notificaciones.
+                     */
+                    creadorUid = creadorUid,
+
+                    usuariosAnotados =
+                        listOf(creador),
+
+                    /*
+                     * Conservamos el mismo índice que usuariosAnotados.
+                     */
+                    usuariosAnotadosUids =
+                        listOf(creadorUid),
+
+                    calificacionCreador = 5.0,
+                    descripcion = descripcion,
+
+                    canchaId = canchaId,
+                    nombreCancha = nombreCancha,
+                    latitud = latitud,
+                    longitud = longitud,
+
+                    estado = estadoInicial
+                )
+
+            repository.crearPartido(
+                nuevoPartido
+            )
+
+            /*
+             * Si el partido usa una cancha, también se crea la reserva.
+             * Ahora la reserva guarda UID + email.
+             */
+            if (canchaId != null) {
+                val reserva =
+                    Reserva(
+                        canchaId =
+                            canchaId,
+
+                        canchaNombre =
+                            nombreCancha ?: "",
+
+                        // Compatibilidad.
+                        usuarioId =
+                            creador,
+
+                        // Datos para notificaciones.
+                        usuarioUid =
+                            creadorUid,
+
+                        usuarioEmail =
+                            creador,
+
+                        usuarioNombre =
+                            creador,
+
+                        fecha =
+                            fecha,
+
+                        hora =
+                            horario,
+
+                        estado =
+                            if (esDuenioCancha) {
+                                "Confirmada"
+                            } else {
+                                "Pendiente"
+                            },
+
+                        partidoId =
+                            partidoId
+                    )
+
+                reservaRepository
+                    .crearReserva(
+                        reserva
+                    )
             }
+
+            cargarPartidos()
+        }
+    }
+
+    /*
+     * Método preparado para cuando agregues edición de partidos.
+     *
+     * La futura Cloud Function podrá detectar si cambiaron campos
+     * relevantes como fecha, horario, ubicación o cancha.
+     */
+    fun actualizarPartido(
+        partido: Partido
+    ) {
+        viewModelScope.launch {
+            repository.actualizarPartido(
+                partido
+            )
 
             cargarPartidos()
         }
@@ -197,19 +299,24 @@ class PartidoViewModel(
         id: String
     ) {
         viewModelScope.launch {
-            repository.eliminarPartido(id)
+            repository.eliminarPartido(
+                id
+            )
+
             cargarPartidos()
         }
     }
 
     fun anotarseAPartido(
         partidoId: String,
-        usuario: String
+        usuario: String,
+        usuarioUid: String
     ) {
         viewModelScope.launch {
             repository.anotarseAPartido(
                 partidoId = partidoId,
-                usuario = usuario
+                usuario = usuario,
+                usuarioUid = usuarioUid
             )
 
             cargarPartidos()
@@ -218,32 +325,36 @@ class PartidoViewModel(
 
     fun cancelarInscripcion(
         partidoId: String,
-        usuario: String
+        usuario: String,
+        usuarioUid: String
     ) {
         viewModelScope.launch {
             repository.cancelarInscripcion(
                 partidoId = partidoId,
-                usuario = usuario
+                usuario = usuario,
+                usuarioUid = usuarioUid
             )
 
             cargarPartidos()
         }
     }
 
+    /*
+     * Ya no reutilizamos crearPartido() para cambiar solamente el estado.
+     */
     fun actualizarEstadoPartido(
         partidoId: String,
         nuevoEstado: EstadoPartido
     ) {
         viewModelScope.launch {
-            val partido = uiState.partidos.find {
-                it.id == partidoId
-            } ?: return@launch
+            repository
+                .actualizarEstadoPartido(
+                    partidoId =
+                        partidoId,
 
-            repository.crearPartido(
-                partido.copy(
-                    estado = nuevoEstado
+                    nuevoEstado =
+                        nuevoEstado
                 )
-            )
 
             cargarPartidos()
         }
@@ -257,8 +368,10 @@ class PartidoViewModel(
         viewModelScope.launch {
             repository.eliminarJugador(
                 partidoId = partidoId,
-                jugadorAEliminar = jugadorAEliminar,
-                usuarioSolicitante = usuarioSolicitante
+                jugadorAEliminar =
+                    jugadorAEliminar,
+                usuarioSolicitante =
+                    usuarioSolicitante
             )
 
             cargarPartidos()

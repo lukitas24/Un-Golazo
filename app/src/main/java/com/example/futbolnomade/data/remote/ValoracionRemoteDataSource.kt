@@ -3,13 +3,15 @@ package com.example.futbolnomade.data.remote
 import android.util.Base64
 import com.example.futbolnomade.domain.model.Cancha
 import com.example.futbolnomade.domain.model.Partido
+import com.example.futbolnomade.domain.model.ValoracionJugador
 import com.example.futbolnomade.domain.model.ValoracionPartido
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
 class ValoracionRemoteDataSource {
 
-    private val db = FirebaseFirestore.getInstance()
+    private val db =
+        FirebaseFirestore.getInstance()
 
     private val valoracionesCollection =
         db.collection("valoraciones")
@@ -37,31 +39,40 @@ class ValoracionRemoteDataSource {
                 .lowercase()
 
         return try {
-            val valoracionId = crearValoracionId(
-                partidoId = valoracion.partidoId,
-                autorEmail = autorNormalizado
-            )
+            val valoracionId =
+                crearValoracionId(
+                    partidoId =
+                        valoracion.partidoId,
+
+                    autorEmail =
+                        autorNormalizado
+                )
 
             val valoracionRef =
-                valoracionesCollection.document(valoracionId)
+                valoracionesCollection
+                    .document(valoracionId)
 
             val partidoRef =
-                partidosCollection.document(valoracion.partidoId)
+                partidosCollection
+                    .document(valoracion.partidoId)
 
             db.runTransaction { transaction ->
 
                 /*
-                 * Todas las lecturas deben realizarse antes
+                 * Todas las lecturas se realizan antes
                  * de comenzar las escrituras.
                  */
-
                 val valoracionExistente =
-                    transaction.get(valoracionRef)
+                    transaction.get(
+                        valoracionRef
+                    )
 
                 val partidoActual =
                     transaction
                         .get(partidoRef)
-                        .toObject(Partido::class.java)
+                        .toObject(
+                            Partido::class.java
+                        )
 
                 if (valoracionExistente.exists()) {
                     return@runTransaction false
@@ -75,17 +86,19 @@ class ValoracionRemoteDataSource {
                  * El usuario solamente puede valorar si estaba
                  * anotado en el partido.
                  */
-                val usuarioEstabaAnotado =
-                    partidoActual.usuariosAnotados.any { usuario ->
-                        usuario
-                            .trim()
-                            .equals(
-                                autorNormalizado,
-                                ignoreCase = true
-                            )
-                    }
+                val indiceAutor =
+                    partidoActual
+                        .usuariosAnotados
+                        .indexOfFirst { usuario ->
+                            usuario
+                                .trim()
+                                .equals(
+                                    autorNormalizado,
+                                    ignoreCase = true
+                                )
+                        }
 
-                if (!usuarioEstabaAnotado) {
+                if (indiceAutor < 0) {
                     return@runTransaction false
                 }
 
@@ -98,33 +111,37 @@ class ValoracionRemoteDataSource {
 
                 val partidoYaOcurrio =
                     partidoActual.fechaHoraInicio > 0L &&
-                            partidoActual.fechaHoraInicio <= momentoActual
+                            partidoActual.fechaHoraInicio <=
+                            momentoActual
 
                 if (!partidoYaOcurrio) {
                     return@runTransaction false
                 }
 
                 /*
-                 * No se permite valorar jugadores que no
-                 * pertenecieron al partido.
+                 * Emails válidos de los participantes.
                  */
                 val participantesDelPartido =
-                    partidoActual.usuariosAnotados
+                    partidoActual
+                        .usuariosAnotados
                         .map {
                             it.trim().lowercase()
                         }
                         .toSet()
 
                 val jugadoresValidos =
-                    valoracion.valoracionesJugadores.all {
-                        val emailJugador =
-                            it.jugadorEmail
-                                .trim()
-                                .lowercase()
+                    valoracion
+                        .valoracionesJugadores
+                        .all {
+                            val emailJugador =
+                                it.jugadorEmail
+                                    .trim()
+                                    .lowercase()
 
-                        emailJugador in participantesDelPartido &&
-                                it.puntuacion in 1..5
-                    }
+                            emailJugador in
+                                    participantesDelPartido &&
+                                    it.puntuacion in 1..5
+                        }
 
                 if (!jugadoresValidos) {
                     return@runTransaction false
@@ -133,28 +150,174 @@ class ValoracionRemoteDataSource {
                 val canchaRef =
                     valoracion.canchaId
                         ?.takeIf {
-                            valoracion.puntuacionCancha in 1..5
+                            valoracion.puntuacionCancha in
+                                    1..5
                         }
                         ?.let { canchaId ->
-                            canchasCollection.document(canchaId)
+                            canchasCollection
+                                .document(canchaId)
                         }
 
                 val canchaActual: Cancha? =
                     canchaRef?.let { referencia ->
                         transaction
                             .get(referencia)
-                            .toObject(Cancha::class.java)
+                            .toObject(
+                                Cancha::class.java
+                            )
                     }
+
+                /*
+                 * Armamos email -> UID usando los datos del partido.
+                 * Para partidos viejos, algún UID puede quedar vacío.
+                 */
+                fun uidDeParticipante(
+                    email: String
+                ): String {
+                    val indice =
+                        partidoActual
+                            .usuariosAnotados
+                            .indexOfFirst {
+                                it.trim().equals(
+                                    email.trim(),
+                                    ignoreCase = true
+                                )
+                            }
+
+                    if (indice < 0) {
+                        return ""
+                    }
+
+                    return partidoActual
+                        .usuariosAnotadosUids
+                        .getOrNull(indice)
+                        .orEmpty()
+                }
+
+                /*
+                 * Normalizamos las valoraciones individuales y,
+                 * si la pantalla no mandó UID, intentamos recuperarlo
+                 * desde el partido.
+                 */
+                val jugadoresNormalizados:
+                        List<ValoracionJugador> =
+                    valoracion
+                        .valoracionesJugadores
+                        .map { jugador ->
+
+                            val emailNormalizado =
+                                jugador.jugadorEmail
+                                    .trim()
+                                    .lowercase()
+
+                            jugador.copy(
+                                jugadorEmail =
+                                    emailNormalizado,
+
+                                jugadorUid =
+                                    jugador.jugadorUid
+                                        .ifBlank {
+                                            uidDeParticipante(
+                                                emailNormalizado
+                                            )
+                                        }
+                            )
+                        }
+
+                /*
+                 * UID del autor. Priorizamos lo que ya quedó asociado
+                 * al participante dentro del partido.
+                 */
+                val autorUidNormalizado =
+                    partidoActual
+                        .usuariosAnotadosUids
+                        .getOrNull(indiceAutor)
+                        .orEmpty()
+                        .ifBlank {
+                            valoracion.autorUid
+                        }
+
+                val organizadorEmailNormalizado =
+                    valoracion.organizadorEmail
+                        ?.trim()
+                        ?.lowercase()
+
+                val organizadorUidNormalizado =
+                    if (
+                        organizadorEmailNormalizado
+                            .isNullOrBlank()
+                    ) {
+                        null
+                    } else {
+                        partidoActual.creadorUid
+                            .ifBlank {
+                                uidDeParticipante(
+                                    organizadorEmailNormalizado
+                                )
+                            }
+                            .ifBlank {
+                                valoracion
+                                    .organizadorUid
+                                    .orEmpty()
+                            }
+                            .takeIf {
+                                it.isNotBlank()
+                            }
+                    }
+
+                /*
+                 * Una misma persona puede aparecer como jugador y
+                 * organizador. Usamos distinct() para que reciba UNA
+                 * sola notificación por valoración guardada.
+                 */
+                val destinatariosUids =
+                    buildList {
+                        addAll(
+                            jugadoresNormalizados
+                                .map {
+                                    it.jugadorUid
+                                }
+                        )
+
+                        organizadorUidNormalizado
+                            ?.let {
+                                add(it)
+                            }
+                    }
+                        .filter {
+                            it.isNotBlank() &&
+                                    it != autorUidNormalizado
+                        }
+                        .distinct()
 
                 /*
                  * A partir de acá comienzan las escrituras.
                  */
-
                 val valoracionNormalizada =
                     valoracion.copy(
-                        id = valoracionId,
-                        autorEmail = autorNormalizado,
-                        fechaCreacion = momentoActual
+                        id =
+                            valoracionId,
+
+                        autorEmail =
+                            autorNormalizado,
+
+                        autorUid =
+                            autorUidNormalizado,
+
+                        valoracionesJugadores =
+                            jugadoresNormalizados,
+
+                        organizadorEmail =
+                            organizadorEmailNormalizado,
+
+                        organizadorUid =
+                            organizadorUidNormalizado,
+
+                        destinatariosUids =
+                            destinatariosUids,
+
+                        fechaCreacion =
+                            momentoActual
                     )
 
                 transaction.set(
@@ -167,7 +330,8 @@ class ValoracionRemoteDataSource {
                     canchaActual != null
                 ) {
                     val cantidadAnterior =
-                        canchaActual.cantidadValoraciones
+                        canchaActual
+                            .cantidadValoraciones
 
                     val cantidadNueva =
                         cantidadAnterior + 1
@@ -179,14 +343,18 @@ class ValoracionRemoteDataSource {
                     val nuevoPromedio =
                         (
                                 sumaAnterior +
-                                        valoracion.puntuacionCancha
+                                        valoracion
+                                            .puntuacionCancha
                                 ) / cantidadNueva
 
                     transaction.update(
                         canchaRef,
                         mapOf(
-                            "calificacion" to nuevoPromedio,
-                            "cantidadValoraciones" to cantidadNueva
+                            "calificacion" to
+                                    nuevoPromedio,
+
+                            "cantidadValoraciones" to
+                                    cantidadNueva
                         )
                     )
                 }
@@ -204,7 +372,9 @@ class ValoracionRemoteDataSource {
     ): List<ValoracionPartido> {
         return try {
             val emailNormalizado =
-                emailUsuario.trim().lowercase()
+                emailUsuario
+                    .trim()
+                    .lowercase()
 
             valoracionesCollection
                 .whereEqualTo(
@@ -226,15 +396,42 @@ class ValoracionRemoteDataSource {
         emailUsuario: String
     ): List<ValoracionPartido> {
         return try {
-            // Fetch everything and filter in memory for received ratings (as player or organizer)
-            // In a larger app, we'd use composite indexes or better model fields
+            val emailNormalizado =
+                emailUsuario
+                    .trim()
+                    .lowercase()
+
             valoracionesCollection
                 .get()
                 .await()
-                .toObjects(ValoracionPartido::class.java)
+                .toObjects(
+                    ValoracionPartido::class.java
+                )
                 .filter { valoracion ->
-                    valoracion.organizadorEmail == emailUsuario ||
-                    valoracion.valoracionesJugadores.any { it.jugadorEmail == emailUsuario }
+
+                    val valoradoComoOrganizador =
+                        valoracion
+                            .organizadorEmail
+                            ?.trim()
+                            ?.equals(
+                                emailNormalizado,
+                                ignoreCase = true
+                            ) == true
+
+                    val valoradoComoJugador =
+                        valoracion
+                            .valoracionesJugadores
+                            .any {
+                                it.jugadorEmail
+                                    .trim()
+                                    .equals(
+                                        emailNormalizado,
+                                        ignoreCase = true
+                                    )
+                            }
+
+                    valoradoComoOrganizador ||
+                            valoradoComoJugador
                 }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -248,12 +445,18 @@ class ValoracionRemoteDataSource {
     ): Boolean {
         return try {
             val emailNormalizado =
-                autorEmail.trim().lowercase()
+                autorEmail
+                    .trim()
+                    .lowercase()
 
-            val id = crearValoracionId(
-                partidoId = partidoId,
-                autorEmail = emailNormalizado
-            )
+            val id =
+                crearValoracionId(
+                    partidoId =
+                        partidoId,
+
+                    autorEmail =
+                        emailNormalizado
+                )
 
             valoracionesCollection
                 .document(id)
@@ -276,6 +479,7 @@ class ValoracionRemoteDataSource {
                     .trim()
                     .lowercase()
                     .toByteArray(),
+
                 Base64.URL_SAFE or
                         Base64.NO_WRAP or
                         Base64.NO_PADDING
