@@ -118,6 +118,7 @@ fun AdminCanchaScreen(
         // ════════════════════════════════════════════════════════════════
         // SECCIÓN: SOLICITUDES DE RESERVA
         // ════════════════════════════════════════════════════════════════
+        val context = androidx.compose.ui.platform.LocalContext.current
         if (reservas.isNotEmpty()) {
             SeccionTitulo("Solicitudes pendientes (${reservas.size})", Icons.Default.Notifications, tintTitulo = ColorVerde)
             
@@ -129,13 +130,13 @@ fun AdminCanchaScreen(
                     CardReservaPendiente(
                         reserva = reserva,
                         onAceptar = {
-                            reservaViewModel.responderReserva(reserva.id, "Confirmada")
+                            reservaViewModel.responderReserva(context, reserva.id, "Confirmada")
                             reserva.partidoId?.let { pid ->
                                 partidoViewModel.actualizarEstadoPartido(pid, EstadoPartido.RESERVA_APROBADA)
                             }
                         },
                         onRechazar = {
-                            reservaViewModel.responderReserva(reserva.id, "Rechazada")
+                            reservaViewModel.responderReserva(context, reserva.id, "Rechazada")
                             reserva.partidoId?.let { pid ->
                                 partidoViewModel.actualizarEstadoPartido(pid, EstadoPartido.RESERVA_RECHAZADA)
                             }

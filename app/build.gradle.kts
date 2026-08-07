@@ -32,6 +32,14 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/INDEX.LIST"
+            excludes += "META-INF/DEPENDENCIES"
+        }
+    }
 }
 
 dependencies {
@@ -60,6 +68,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("androidx.biometric:biometric:1.1.0")
     implementation("androidx.datastore:datastore-preferences:1.1.7")
+    implementation("com.google.auth:google-auth-library-oauth2-http:1.23.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 

@@ -107,6 +107,7 @@ class PartidoViewModel(
         participantes: Int,
         descripcion: String,
         creador: String,
+        creadorUid: String,
         canchaId: String? = null,
         nombreCancha: String? = null,
         latitud: Double? = null,
@@ -173,7 +174,7 @@ class PartidoViewModel(
                 val reserva = Reserva(
                     canchaId = canchaId,
                     canchaNombre = nombreCancha ?: "",
-                    usuarioId = creador,
+                    usuarioId = creadorUid,
                     usuarioNombre = creador,
                     fecha = fecha,
                     hora = horario,

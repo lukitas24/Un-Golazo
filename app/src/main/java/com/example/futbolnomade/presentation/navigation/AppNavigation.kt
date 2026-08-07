@@ -134,11 +134,13 @@ fun AppNavigation(
 
     fun navigateToHome(
         nombre: String,
-        email: String
+        email: String,
+        uid: String
     ) {
         perfilViewModel.inicializar(
             nombre,
-            email
+            email,
+            uid
         )
 
         val destination =
@@ -337,7 +339,8 @@ fun AppNavigation(
                                                             .ifBlank {
                                                                 usuario.email
                                                             },
-                                                        usuario.email
+                                                        usuario.email,
+                                                        usuario.uid
                                                     )
                                                 }
                                             }
@@ -396,7 +399,8 @@ fun AppNavigation(
                         } else {
                             navigateToHome(
                                 nombre,
-                                email
+                                email,
+                                uid
                             )
                         }
                     },
@@ -415,7 +419,8 @@ fun AppNavigation(
 
                             navigateToHome(
                                 pending.nombre,
-                                pending.email
+                                pending.email,
+                                pending.uid
                             )
                         },
 
@@ -442,7 +447,8 @@ fun AppNavigation(
                                     if (manager == null) {
                                         navigateToHome(
                                             pending.nombre,
-                                            pending.email
+                                            pending.email,
+                                            pending.uid
                                         )
                                         return@enrollmentClick
                                     }
@@ -460,7 +466,8 @@ fun AppNavigation(
 
                                             navigateToHome(
                                                 pending.nombre,
-                                                pending.email
+                                                pending.email,
+                                                pending.uid
                                             )
                                             return@enrollmentClick
                                         }
@@ -504,14 +511,16 @@ fun AppNavigation(
 
                                                 navigateToHome(
                                                     pending.nombre,
-                                                    pending.email
+                                                    pending.email,
+                                                    pending.uid
                                                 )
                                             },
 
                                             onCancelled = {
                                                 navigateToHome(
                                                     pending.nombre,
-                                                    pending.email
+                                                    pending.email,
+                                                    pending.uid
                                                 )
                                             },
 
@@ -524,7 +533,8 @@ fun AppNavigation(
 
                                                 navigateToHome(
                                                     pending.nombre,
-                                                    pending.email
+                                                    pending.email,
+                                                    pending.uid
                                                 )
                                             }
                                         )
@@ -541,7 +551,8 @@ fun AppNavigation(
 
                                     navigateToHome(
                                         pending.nombre,
-                                        pending.email
+                                        pending.email,
+                                        pending.uid
                                     )
                                 }
                             ) {
@@ -556,10 +567,11 @@ fun AppNavigation(
             composable(Screen.Register.route) {
                 RegisterScreen(
                     authViewModel = authViewModel,
-                    onRegistroExitoso = { nombre, email ->
+                    onRegistroExitoso = { nombre, email, uid ->
                         navigateToHome(
                             nombre,
-                            email
+                            email,
+                            uid ?: ""
                         )
                     },
                     onVolver = { navController.popBackStack() }
@@ -687,6 +699,7 @@ fun AppNavigation(
                             participantes = participantes,
                             descripcion = descripcion,
                             creador = perfilViewModel.email,
+                            creadorUid = perfilViewModel.uid,
                             canchaId = canchaId,
                             nombreCancha = nombreCancha,
                             latitud = latitud,
@@ -864,7 +877,7 @@ fun AppNavigation(
                             com.example.futbolnomade.domain.model.Reserva(
                                 canchaId = idCancha,
                                 canchaNombre = cancha?.nombre ?: "",
-                                usuarioId = perfilViewModel.email,
+                                usuarioId = perfilViewModel.uid,
                                 usuarioNombre = perfilViewModel.nombre,
                                 fecha = fecha,
                                 hora = hora,
@@ -1143,6 +1156,7 @@ fun AppNavigation(
                         perfilViewModel.actualizarPerfil(
                             nombre,
                             email,
+                            perfilViewModel.uid,
                             uri
                         )
 

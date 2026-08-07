@@ -12,27 +12,32 @@ class PerfilViewModel : ViewModel() {
         private set
     var email    by mutableStateOf("")
         private set
+    var uid      by mutableStateOf("")
+        private set
     var imageUri by mutableStateOf<Uri?>(null)
         private set
 
     // Llamado desde AppNavigation cada vez que el usuario inicia sesión
-    fun inicializar(nombre: String, email: String) {
-        if (this.nombre != nombre || this.email != email) {
+    fun inicializar(nombre: String, email: String, uid: String) {
+        if (this.nombre != nombre || this.email != email || this.uid != uid) {
             this.nombre = nombre
             this.email  = email
+            this.uid    = uid
             // No pisamos imageUri para conservar la foto si ya la cambió
         }
     }
 
-    fun actualizarPerfil(nombre: String, email: String, uri: Uri?) {
+    fun actualizarPerfil(nombre: String, email: String, uid: String, uri: Uri?) {
         this.nombre   = nombre
         this.email    = email
+        this.uid      = uid
         if (uri != null) this.imageUri = uri
     }
 
     fun limpiar() {
         nombre   = ""
         email    = ""
+        uid      = ""
         imageUri = null
     }
 }

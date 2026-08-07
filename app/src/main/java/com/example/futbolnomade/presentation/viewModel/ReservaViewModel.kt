@@ -1,10 +1,12 @@
 package com.example.futbolnomade.presentation.viewModel
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.futbolnomade.data.remote.notification.FcmNotificationSender
 import com.example.futbolnomade.data.repository.ReservaRepositoryImpl
 import com.example.futbolnomade.domain.model.Reserva
 import com.example.futbolnomade.domain.repository.ReservaRepository
@@ -15,10 +17,11 @@ data class ReservaUiState(
     val isLoading: Boolean = false
 )
 
-class ReservaViewModel(
-    private val repository: ReservaRepository = ReservaRepositoryImpl()
-) : ViewModel() {
+class ReservaViewModel : ViewModel() {
 
+    private val repository: ReservaRepository = ReservaRepositoryImpl()
+    private val notificationSender = FcmNotificationSender()
+    
     var uiState by mutableStateOf(ReservaUiState())
         private set
 
@@ -41,7 +44,6 @@ class ReservaViewModel(
             uiState = uiState.copy(isLoading = true)
             try {
                 repository.obtenerReservasPorCancha(canchaId).collect { lista ->
-                    // Filtramos las anteriores de esta misma cancha para no duplicar ni mantener obsoletas
                     val otrasReservas = uiState.reservas.filter { it.canchaId != canchaId }
                     uiState = uiState.copy(
                         reservas = (otrasReservas + lista).distinctBy { it.id },
@@ -67,9 +69,29 @@ class ReservaViewModel(
         }
     }
 
-    fun responderReserva(reservaId: String, nuevoEstado: String) {
+    fun responderReserva(context: Context, reservaId: String, nuevoEstado: String) {
         viewModelScope.launch {
             repository.actualizarEstadoReserva(reservaId, nuevoEstado)
+            
+            val reserva = uiState.reservas.find { it.id == reservaId }
+            if (reserva != null && reserva.usuarioId.isNotBlank()) {
+                val titulo = if (nuevoEstado == "Confirmada") "¡Reserva Aprobada! ⚽" else "Reserva Rechazada ❌"
+                val mensaje = if (nuevoEstado == "Confirmada") 
+                    "Tu turno en ${reserva.canchaNombre} ha sido confirmado." else 
+                    "Lo sentimos, tu turno en ${reserva.canchaNombre} no fue aceptado."
+
+                notificationSender.enviarNotificacionAUsuario(
+                    context = context,
+                    uid = reserva.usuarioId,
+                    titulo = titulo,
+                    mensaje = mensaje,
+                    data = mapOf(
+                        "tipo" to "RESERVA_STATUS",
+                        "reservaId" to reservaId,
+                        "estado" to nuevoEstado
+                    )
+                )
+            }
         }
     }
 }

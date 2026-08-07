@@ -34,7 +34,7 @@ private val ColorSubtexto = Color.White.copy(alpha = 0.75f)
 @Composable
 fun RegisterScreen(
     authViewModel: AuthViewModel,           // ← siempre recibido desde AppNavigation, sin default
-    onRegistroExitoso: (nombre: String, email: String) -> Unit,
+    onRegistroExitoso: (nombre: String, email: String, uid: String?) -> Unit,
     onVolver: () -> Unit
 ) {
     var nombre    by remember { mutableStateOf("") }
@@ -181,7 +181,11 @@ fun RegisterScreen(
                 // Registrar en el ViewModel compartido
                 authViewModel.registrar(nombre.trim(), email.trim(), password.trim()) { result ->
                     when (result) {
-                        is AuthResult.Success -> onRegistroExitoso(nombre.trim(), email.trim())
+                        is AuthResult.Success -> onRegistroExitoso(
+                            nombre.trim(),
+                            email.trim(),
+                            authViewModel.usuarioActual?.uid
+                        )
                         is AuthResult.Error -> registroError = result.mensaje
                     }
                 }
