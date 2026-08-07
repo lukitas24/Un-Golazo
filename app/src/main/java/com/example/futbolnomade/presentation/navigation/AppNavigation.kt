@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -59,6 +60,7 @@ import com.example.futbolnomade.presentation.viewModel.ReservaViewModel
 import com.example.futbolnomade.presentation.viewModel.ValoracionViewModel
 import com.example.futbolnomade.presentation.notification.NotificationPermissionRequester
 import com.example.futbolnomade.presentation.notification.NotificationTarget
+import com.example.futbolnomade.presentation.notification.PartidoReminderScheduler
 
 
 private data class PendingBiometricEnrollment(
@@ -91,6 +93,8 @@ fun AppNavigation(
     val perfilViewModel: PerfilViewModel = viewModel()
     val reservaViewModel: ReservaViewModel = viewModel()
     val valoracionViewModel: ValoracionViewModel = viewModel()
+
+    val context = LocalContext.current
 
     NotificationPermissionRequester(
         enabled =
@@ -179,6 +183,29 @@ fun AppNavigation(
                     perfilViewModel.email
                 )
         }
+    }
+
+    /*
+     * Mantiene programado el aviso local de 2 horas para todos
+     * los partidos en los que participa el usuario.
+     *
+     * También reprograma automáticamente si cambia la lista,
+     * la fecha o el estado del partido mientras la app está abierta.
+     */
+    LaunchedEffect(
+        partidoViewModel.uiState.partidos,
+        perfilViewModel.email
+    ) {
+        PartidoReminderScheduler
+            .sincronizarRecordatorios(
+                context = context,
+                partidos =
+                    partidoViewModel
+                        .uiState
+                        .partidos,
+                usuarioEmail =
+                    perfilViewModel.email
+            )
     }
 
     LaunchedEffect(
@@ -687,6 +714,7 @@ fun AppNavigation(
                             participantes = participantes,
                             descripcion = descripcion,
                             creador = perfilViewModel.email,
+                            creadorUid = authViewModel.usuarioActual?.uid.orEmpty(),
                             canchaId = canchaId,
                             nombreCancha = nombreCancha,
                             latitud = latitud,
@@ -747,14 +775,16 @@ fun AppNavigation(
                     onAnotarse = { id, usuario ->
                         partidoViewModel.anotarseAPartido(
                             partidoId = id,
-                            usuario = usuario
+                            usuario = usuario,
+                            usuarioUid = authViewModel.usuarioActual?.uid.orEmpty()
                         )
                     },
 
                     onCancelarInscripcion = { id, usuario ->
                         partidoViewModel.cancelarInscripcion(
                             partidoId = id,
-                            usuario = usuario
+                            usuario = usuario,
+                            usuarioUid = authViewModel.usuarioActual?.uid.orEmpty()
                         )
                     },
 
@@ -865,6 +895,8 @@ fun AppNavigation(
                                 canchaId = idCancha,
                                 canchaNombre = cancha?.nombre ?: "",
                                 usuarioId = perfilViewModel.email,
+                                usuarioUid = authViewModel.usuarioActual?.uid.orEmpty(),
+                                usuarioEmail = perfilViewModel.email,
                                 usuarioNombre = perfilViewModel.nombre,
                                 fecha = fecha,
                                 hora = hora,
@@ -1037,6 +1069,15 @@ fun AppNavigation(
                     },
 
                     onCerrarSesion = {
+                        /*
+                         * Este dispositivo ya no debe mostrar recordatorios
+                         * pertenecientes a la cuenta que cerró sesión.
+                         */
+                        PartidoReminderScheduler
+                            .cancelarTodos(
+                                context
+                            )
+
                         authViewModel.logout {
                             perfilViewModel.limpiar()
 
@@ -1082,6 +1123,7 @@ fun AppNavigation(
                 ValorarPartidoScreen(
                     partido = partido,
                     usuarioActual = perfilViewModel.email,
+                    usuarioActualUid = authViewModel.usuarioActual?.uid.orEmpty(),
                     guardando = valoracionViewModel.guardando,
                     error = valoracionViewModel.error,
 

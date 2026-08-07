@@ -50,16 +50,25 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.navigation:navigation-compose:2.8.5")
     implementation("io.coil-kt:coil-compose:2.6.0")
+
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-messaging")
+
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+
     implementation("com.google.maps.android:maps-compose:4.3.3")
     implementation("com.google.android.gms:play-services-maps:19.0.0")
     implementation("com.google.android.gms:play-services-location:21.3.0")
+
     implementation("androidx.biometric:biometric:1.1.0")
     implementation("androidx.datastore:datastore-preferences:1.1.7")
+
+    /*
+     * Recordatorios locales programados.
+     */
+    implementation("androidx.work:work-runtime-ktx:2.10.1")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 

@@ -27,6 +27,7 @@ private val VerdeValoracion = Color(0xFF82A820)
 fun ValorarPartidoScreen(
     partido: Partido?,
     usuarioActual: String,
+    usuarioActualUid: String,
     guardando: Boolean,
     error: String?,
     onGuardar: (ValoracionPartido) -> Unit,
@@ -46,6 +47,33 @@ fun ValorarPartidoScreen(
         }
 
         return
+    }
+
+    /*
+     * usuariosAnotados y usuariosAnotadosUids se mantienen alineados
+     * por índice. Esto nos permite obtener el UID de cada persona
+     * valorada sin dejar de mostrar/usar el email en la UI.
+     */
+    fun uidDeJugador(
+        email: String
+    ): String {
+        val indice =
+            partido.usuariosAnotados
+                .indexOfFirst {
+                    it.trim().equals(
+                        email.trim(),
+                        ignoreCase = true
+                    )
+                }
+
+        if (indice < 0) {
+            return ""
+        }
+
+        return partido
+            .usuariosAnotadosUids
+            .getOrNull(indice)
+            .orEmpty()
     }
 
     val jugadoresValorables = remember(
@@ -294,6 +322,7 @@ fun ValorarPartidoScreen(
                     ValoracionPartido(
                         partidoId = partido.id,
                         autorEmail = usuarioActual,
+                        autorUid = usuarioActualUid,
 
                         valoracionesJugadores =
                             puntuacionesJugadores.map {
@@ -301,6 +330,7 @@ fun ValorarPartidoScreen(
 
                                 ValoracionJugador(
                                     jugadorEmail = email,
+                                    jugadorUid = uidDeJugador(email),
                                     puntuacion = puntuacion
                                 )
                             },
@@ -309,6 +339,13 @@ fun ValorarPartidoScreen(
                             partido.creador.takeIf {
                                 puedeValorarOrganizador
                             },
+
+                        organizadorUid =
+                            partido.creadorUid
+                                .takeIf {
+                                    puedeValorarOrganizador &&
+                                            it.isNotBlank()
+                                },
 
                         puntuacionOrganizador =
                             if (
@@ -327,6 +364,37 @@ fun ValorarPartidoScreen(
                             } else {
                                 0
                             },
+
+                        /*
+                         * El RemoteDataSource vuelve a normalizar y
+                         * deduplicar esta lista antes de guardar.
+                         */
+                        destinatariosUids =
+                            buildList {
+                                puntuacionesJugadores.keys
+                                    .map {
+                                        uidDeJugador(it)
+                                    }
+                                    .filter {
+                                        it.isNotBlank()
+                                    }
+                                    .forEach {
+                                        add(it)
+                                    }
+
+                                if (
+                                    puedeValorarOrganizador &&
+                                    partido.creadorUid.isNotBlank()
+                                ) {
+                                    add(
+                                        partido.creadorUid
+                                    )
+                                }
+                            }
+                                .filter {
+                                    it != usuarioActualUid
+                                }
+                                .distinct(),
 
                         fechaCreacion =
                             System.currentTimeMillis()
