@@ -2,6 +2,8 @@ package com.example.futbolnomade.data.remote
 
 import android.util.Base64
 import com.example.futbolnomade.domain.model.Cancha
+import com.example.futbolnomade.domain.model.NotificationEvent
+import com.example.futbolnomade.domain.model.NotificationEventType
 import com.example.futbolnomade.domain.model.Partido
 import com.example.futbolnomade.domain.model.ValoracionJugador
 import com.example.futbolnomade.domain.model.ValoracionPartido
@@ -21,6 +23,12 @@ class ValoracionRemoteDataSource {
 
     private val partidosCollection =
         db.collection("partidos")
+
+    /*
+     * Outbox que consumirá el backend para enviar FCM.
+     */
+    private val notificationEventsCollection =
+        db.collection("notification_events")
 
     suspend fun guardarValoracion(
         valoracion: ValoracionPartido
@@ -291,6 +299,36 @@ class ValoracionRemoteDataSource {
                         .distinct()
 
                 /*
+                 * Fallback por email para usuarios/partidos antiguos
+                 * que todavía no tengan UID.
+                 */
+                val destinatariosEmails =
+                    buildList {
+                        addAll(
+                            jugadoresNormalizados
+                                .map {
+                                    it.jugadorEmail
+                                }
+                        )
+
+                        organizadorEmailNormalizado
+                            ?.let {
+                                add(it)
+                            }
+                    }
+                        .map {
+                            it.trim().lowercase()
+                        }
+                        .filter {
+                            it.isNotBlank() &&
+                                    !it.equals(
+                                        autorNormalizado,
+                                        ignoreCase = true
+                                    )
+                        }
+                        .distinct()
+
+                /*
                  * A partir de acá comienzan las escrituras.
                  */
                 val valoracionNormalizada =
@@ -324,6 +362,66 @@ class ValoracionRemoteDataSource {
                     valoracionRef,
                     valoracionNormalizada
                 )
+
+                /*
+                 * NOTIFICACIÓN: "Te han puesto una valoración".
+                 *
+                 * La valoración es privada, por eso el mensaje NO
+                 * revela quién valoró ni cuántas estrellas puso.
+                 */
+                if (
+                    destinatariosUids.isNotEmpty() ||
+                    destinatariosEmails.isNotEmpty()
+                ) {
+                    val eventoRef =
+                        notificationEventsCollection
+                            .document()
+
+                    val evento =
+                        NotificationEvent(
+                            id =
+                                eventoRef.id,
+
+                            tipo =
+                                NotificationEventType
+                                    .VALORACION_RECIBIDA,
+
+                            destinatariosUids =
+                                destinatariosUids,
+
+                            destinatariosEmails =
+                                destinatariosEmails,
+
+                            titulo =
+                                "Te han puesto una valoración ⭐",
+
+                            mensaje =
+                                "Recibiste una nueva valoración en \"${partidoActual.titulo}\".",
+
+                            partidoId =
+                                partidoActual.id
+                                    .ifBlank {
+                                        valoracion.partidoId
+                                    },
+
+                            actorUid =
+                                autorUidNormalizado,
+
+                            actorEmail =
+                                autorNormalizado,
+
+                            creadoEn =
+                                momentoActual,
+
+                            procesado =
+                                false
+                        )
+
+                    transaction.set(
+                        eventoRef,
+                        evento
+                    )
+                }
 
                 if (
                     canchaRef != null &&

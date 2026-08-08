@@ -24,7 +24,9 @@ class CanchaViewModel(
         ReservaRepositoryImpl()
 ) : ViewModel() {
 
-    var uiState by mutableStateOf(CanchaUiState())
+    var uiState by mutableStateOf(
+        CanchaUiState()
+    )
         private set
 
     var reservasConfirmadasCancha by mutableStateOf(
@@ -35,82 +37,102 @@ class CanchaViewModel(
     private var currentCanchasJob: Job? = null
     private var reservasCanchaJob: Job? = null
 
-    fun cargarCanchas(userId: String) {
+    fun cargarCanchas(
+        userId: String
+    ) {
         currentCanchasJob?.cancel()
 
-        currentCanchasJob = viewModelScope.launch {
-            try {
-                repository.getCanchas(userId).collect { canchas ->
-                    uiState = uiState.copy(
-                        canchas = canchas,
-                        isLoading = false
-                    )
+        currentCanchasJob =
+            viewModelScope.launch {
+                try {
+                    repository
+                        .getCanchas(userId)
+                        .collect { canchas ->
+
+                            uiState =
+                                uiState.copy(
+                                    canchas = canchas,
+                                    isLoading = false
+                                )
+                        }
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+
+                    uiState =
+                        uiState.copy(
+                            isLoading = false
+                        )
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                uiState = uiState.copy(
-                    isLoading = false
-                    // Aquí podrías agregar un campo de error al uiState si fuera necesario
-                )
             }
-        }
     }
 
     fun cargarTodasLasCanchas() {
         currentCanchasJob?.cancel()
 
-        currentCanchasJob = viewModelScope.launch {
-            try {
-                repository.getAllCanchas().collect { canchas ->
-                    uiState = uiState.copy(
-                        canchas = canchas,
-                        isLoading = false
-                    )
+        currentCanchasJob =
+            viewModelScope.launch {
+                try {
+                    repository
+                        .getAllCanchas()
+                        .collect { canchas ->
+
+                            uiState =
+                                uiState.copy(
+                                    canchas = canchas,
+                                    isLoading = false
+                                )
+                        }
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+
+                    uiState =
+                        uiState.copy(
+                            isLoading = false
+                        )
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                uiState = uiState.copy(
-                    isLoading = false
-                )
             }
-        }
     }
 
-    /**
-     * Escucha en tiempo real las reservas de la cancha.
-     *
-     * Solo las reservas confirmadas bloquean horarios.
-     */
     fun cargarReservasConfirmadasCancha(
         canchaId: String
     ) {
         reservasCanchaJob?.cancel()
 
         if (canchaId.isBlank()) {
-            reservasConfirmadasCancha = emptyList()
+            reservasConfirmadasCancha =
+                emptyList()
+
             return
         }
 
-        reservasCanchaJob = viewModelScope.launch {
-            try {
-                reservaRepository
-                    .obtenerReservasPorCancha(canchaId)
-                    .collect { reservas ->
+        reservasCanchaJob =
+            viewModelScope.launch {
+                try {
+                    reservaRepository
+                        .obtenerReservasPorCancha(
+                            canchaId
+                        )
+                        .collect { reservas ->
 
-                        reservasConfirmadasCancha =
-                            reservas.filter { reserva ->
-                                reserva.estado
-                                    .trim()
-                                    .equals(
-                                        "Confirmada",
-                                        ignoreCase = true
-                                    )
-                            }
-                    }
-            } catch (e: Exception) {
-                e.printStackTrace()
+                            reservasConfirmadasCancha =
+                                reservas.filter {
+                                        reserva ->
+
+                                    reserva.estado
+                                        .trim()
+                                        .equals(
+                                            "Confirmada",
+                                            ignoreCase = true
+                                        )
+                                }
+                        }
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
-        }
     }
 
     fun crearCancha(
@@ -121,33 +143,60 @@ class CanchaViewModel(
         telefono: String,
         horarioApertura: String,
         horarioCierre: String,
-        horariosDetallados: List<HorarioDisponible>,
+        horariosDetallados:
+        List<HorarioDisponible>,
+
+        /*
+         * Email + UID del propietario.
+         */
         propietario: String,
+        propietarioUid: String,
+
         latitud: Double,
         longitud: Double
     ) {
         viewModelScope.launch {
             try {
-                val nuevaCancha = Cancha(
-                    id = "",
-                    nombre = nombre,
-                    ubicacion = ubicacion,
-                    descripcion = descripcion,
-                    precio = precio.toDoubleOrNull() ?: 0.0,
-                    telefono = telefono,
-                    horarioApertura = horarioApertura,
-                    horarioCierre = horarioCierre,
-                    calificacion = 5.0,
-                    propietario = propietario,
-                    disponible = true,
-                    latitud = latitud,
-                    longitud = longitud,
-                    horarios = horariosDetallados
-                )
+                val nuevaCancha =
+                    Cancha(
+                        id = "",
+                        nombre = nombre,
+                        ubicacion = ubicacion,
+                        descripcion = descripcion,
+
+                        precio =
+                            precio.toDoubleOrNull()
+                                ?: 0.0,
+
+                        telefono = telefono,
+
+                        horarioApertura =
+                            horarioApertura,
+
+                        horarioCierre =
+                            horarioCierre,
+
+                        calificacion = 5.0,
+
+                        propietario =
+                            propietario,
+
+                        propietarioUid =
+                            propietarioUid,
+
+                        disponible = true,
+
+                        latitud = latitud,
+                        longitud = longitud,
+
+                        horarios =
+                            horariosDetallados
+                    )
 
                 repository.guardarCancha(
                     nuevaCancha
                 )
+
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -186,17 +235,26 @@ class CanchaViewModel(
                     nombre = nombre,
                     ubicacion = ubicacion,
                     descripcion = descripcion,
+
                     precio =
                         precio.toDoubleOrNull()
                             ?: canchaActual.precio,
+
                     telefono = telefono,
                     disponible = disponible,
+
                     latitud =
-                        latitud ?: canchaActual.latitud,
+                        latitud
+                            ?: canchaActual.latitud,
+
                     longitud =
-                        longitud ?: canchaActual.longitud
+                        longitud
+                            ?: canchaActual.longitud
                 )
 
+            /*
+             * copy() conserva propietarioUid.
+             */
             repository.guardarCancha(
                 canchaActualizada
             )
@@ -215,7 +273,9 @@ class CanchaViewModel(
 
             repository.guardarCancha(
                 cancha.copy(
-                    horarios = cancha.horarios + horario
+                    horarios =
+                        cancha.horarios +
+                                horario
                 )
             )
         }
@@ -233,7 +293,9 @@ class CanchaViewModel(
 
             repository.guardarCancha(
                 cancha.copy(
-                    horarios = cancha.horarios - horario
+                    horarios =
+                        cancha.horarios -
+                                horario
                 )
             )
         }
@@ -263,6 +325,7 @@ class CanchaViewModel(
     override fun onCleared() {
         currentCanchasJob?.cancel()
         reservasCanchaJob?.cancel()
+
         super.onCleared()
     }
 }

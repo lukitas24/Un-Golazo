@@ -47,10 +47,6 @@ class PartidoViewModel(
         }
     }
 
-    /*
-     * Se mantiene esta función por compatibilidad con las pantallas
-     * que todavía utilizan misPartidos().
-     */
     fun misPartidos(
         emailUsuario: String
     ): List<Partido> {
@@ -59,11 +55,6 @@ class PartidoViewModel(
         )
     }
 
-    /*
-     * Devuelve:
-     * 1. Los partidos creados por el usuario.
-     * 2. Los partidos en los que está anotado.
-     */
     fun partidosDelUsuario(
         emailUsuario: String
     ): List<Partido> {
@@ -98,9 +89,6 @@ class PartidoViewModel(
         }
     }
 
-    /*
-     * Partidos visibles públicamente.
-     */
     fun partidosVisibles(): List<Partido> {
         return uiState.partidos.filter {
                 partido ->
@@ -121,22 +109,19 @@ class PartidoViewModel(
         participantes: Int,
         descripcion: String,
 
-        /*
-         * Mantenemos el email porque el resto de la aplicación
-         * todavía lo utiliza.
-         */
         creador: String,
-
-        /*
-         * Nuevo: UID de Firebase Auth.
-         */
         creadorUid: String,
 
         canchaId: String? = null,
         nombreCancha: String? = null,
         latitud: Double? = null,
         longitud: Double? = null,
-        propietarioCancha: String? = null
+
+        /*
+         * Datos del propietario de la cancha seleccionada.
+         */
+        propietarioCancha: String? = null,
+        propietarioCanchaUid: String? = null
     ) {
         viewModelScope.launch {
 
@@ -189,24 +174,22 @@ class PartidoViewModel(
                     dificultad = dificultad,
 
                     participantesActuales = 1,
+
                     participantesMaximos =
                         participantes,
 
                     creador = creador,
-
-                    /*
-                     * Datos nuevos para notificaciones.
-                     */
                     creadorUid = creadorUid,
 
                     usuariosAnotados =
-                        listOf(creador),
+                        listOf(
+                            creador
+                        ),
 
-                    /*
-                     * Conservamos el mismo índice que usuariosAnotados.
-                     */
                     usuariosAnotadosUids =
-                        listOf(creadorUid),
+                        listOf(
+                            creadorUid
+                        ),
 
                     calificacionCreador = 5.0,
                     descripcion = descripcion,
@@ -223,10 +206,6 @@ class PartidoViewModel(
                 nuevoPartido
             )
 
-            /*
-             * Si el partido usa una cancha, también se crea la reserva.
-             * Ahora la reserva guarda UID + email.
-             */
             if (canchaId != null) {
                 val reserva =
                     Reserva(
@@ -236,11 +215,9 @@ class PartidoViewModel(
                         canchaNombre =
                             nombreCancha ?: "",
 
-                        // Compatibilidad.
                         usuarioId =
                             creador,
 
-                        // Datos para notificaciones.
                         usuarioUid =
                             creadorUid,
 
@@ -249,6 +226,18 @@ class PartidoViewModel(
 
                         usuarioNombre =
                             creador,
+
+                        /*
+                         * Necesarios para avisar al dueño que
+                         * recibió una nueva solicitud.
+                         */
+                        propietarioCanchaUid =
+                            propietarioCanchaUid
+                                .orEmpty(),
+
+                        propietarioCanchaEmail =
+                            propietarioCancha
+                                .orEmpty(),
 
                         fecha =
                             fecha,
@@ -277,12 +266,6 @@ class PartidoViewModel(
         }
     }
 
-    /*
-     * Método preparado para cuando agregues edición de partidos.
-     *
-     * La futura Cloud Function podrá detectar si cambiaron campos
-     * relevantes como fecha, horario, ubicación o cancha.
-     */
     fun actualizarPartido(
         partido: Partido
     ) {
@@ -339,9 +322,6 @@ class PartidoViewModel(
         }
     }
 
-    /*
-     * Ya no reutilizamos crearPartido() para cambiar solamente el estado.
-     */
     fun actualizarEstadoPartido(
         partidoId: String,
         nuevoEstado: EstadoPartido
@@ -368,8 +348,10 @@ class PartidoViewModel(
         viewModelScope.launch {
             repository.eliminarJugador(
                 partidoId = partidoId,
+
                 jugadorAEliminar =
                     jugadorAEliminar,
+
                 usuarioSolicitante =
                     usuarioSolicitante
             )

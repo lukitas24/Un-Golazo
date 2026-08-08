@@ -26,6 +26,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.example.futbolnomade.domain.model.puedeValorarse
+import com.example.futbolnomade.domain.model.NotificationEventType
 import com.example.futbolnomade.presentation.security.BiometricAuthManager
 import com.example.futbolnomade.presentation.security.BiometricAvailability
 import com.example.futbolnomade.presentation.ui.AcercaScreen
@@ -61,6 +62,8 @@ import com.example.futbolnomade.presentation.viewModel.ValoracionViewModel
 import com.example.futbolnomade.presentation.notification.NotificationPermissionRequester
 import com.example.futbolnomade.presentation.notification.NotificationTarget
 import com.example.futbolnomade.presentation.notification.PartidoReminderScheduler
+import com.example.futbolnomade.presentation.notification.ValoracionReminderScheduler
+import com.example.futbolnomade.presentation.notification.ValoracionReminderWorker
 
 
 private data class PendingBiometricEnrollment(
@@ -119,6 +122,59 @@ fun AppNavigation(
     ): String? {
         val partidoId =
             target?.partidoId
+
+        /*
+         * La notificación "Ya podés valorar" no abre el detalle:
+         * abre directamente la pantalla de valoración.
+         */
+        if (
+            target?.tipo ==
+            ValoracionReminderWorker.TIPO_VALORAR_PARTIDO &&
+            !partidoId.isNullOrBlank()
+        ) {
+            return Screen.ValorarPartido
+                .createRoute(partidoId)
+        }
+
+        /*
+         * Una valoración recibida pertenece al perfil del usuario.
+         * Aunque el evento también tenga partidoId, priorizamos Perfil
+         * antes del routing genérico a DetallePartido.
+         */
+        if (
+            target?.tipo ==
+            NotificationEventType.VALORACION_RECIBIDA
+        ) {
+            return Screen.Perfil.route
+        }
+
+        /*
+         * Solicitud nueva -> abre directamente la administración
+         * de la cancha para aceptar/rechazar.
+         */
+        if (
+            target?.tipo ==
+            NotificationEventType.NUEVA_SOLICITUD_RESERVA
+        ) {
+            val canchaId =
+                target.canchaId
+
+            if (!canchaId.isNullOrBlank()) {
+                return Screen.AdminCancha
+                    .createRoute(canchaId)
+            }
+        }
+
+        /*
+         * El partido ya fue eliminado, por lo que no tiene sentido
+         * abrir DetallePartido con un ID que ya no existe.
+         */
+        if (
+            target?.tipo ==
+            NotificationEventType.PARTIDO_CANCELADO
+        ) {
+            return Screen.MisPartidos.route
+        }
 
         if (!partidoId.isNullOrBlank()) {
             return Screen.DetallePartido
@@ -207,6 +263,41 @@ fun AppNavigation(
                         .partidos,
                 usuarioEmail =
                     perfilViewModel.email
+            )
+    }
+
+    /*
+     * La valoración ya se habilita 2 horas después de fechaHoraInicio.
+     * Programamos la notificación exactamente para ese mismo momento.
+     */
+    LaunchedEffect(
+        partidoViewModel.uiState.partidos,
+        valoracionViewModel.valoracionesUsuario,
+        perfilViewModel.email
+    ) {
+        val partidosYaValorados =
+            valoracionViewModel
+                .valoracionesUsuario
+                .map {
+                    it.partidoId
+                }
+                .toSet()
+
+        ValoracionReminderScheduler
+            .sincronizarRecordatorios(
+                context =
+                    context,
+
+                partidos =
+                    partidoViewModel
+                        .uiState
+                        .partidos,
+
+                usuarioEmail =
+                    perfilViewModel.email,
+
+                partidosYaValorados =
+                    partidosYaValorados
             )
     }
 
@@ -731,7 +822,8 @@ fun AppNavigation(
                             nombreCancha = nombreCancha,
                             latitud = latitud,
                             longitud = longitud,
-                            propietarioCancha = canchaViewModel.uiState.canchas.find { it.id == canchaId }?.propietario
+                            propietarioCancha = canchaViewModel.uiState.canchas.find { it.id == canchaId }?.propietario,
+                            propietarioCanchaUid = canchaViewModel.uiState.canchas.find { it.id == canchaId }?.propietarioUid
                         )
 
                         navController.popBackStack()
@@ -910,6 +1002,8 @@ fun AppNavigation(
                                 usuarioUid = authViewModel.usuarioActual?.uid.orEmpty(),
                                 usuarioEmail = perfilViewModel.email,
                                 usuarioNombre = perfilViewModel.nombre,
+                                propietarioCanchaUid = cancha?.propietarioUid.orEmpty(),
+                                propietarioCanchaEmail = cancha?.propietario.orEmpty(),
                                 fecha = fecha,
                                 hora = hora,
                                 estado = if (esDuenio) "Confirmada" else "Pendiente"
@@ -948,6 +1042,7 @@ fun AppNavigation(
                             horarioCierre = cierre,
                             horariosDetallados = horariosDetallados,
                             propietario = perfilViewModel.email,
+                            propietarioUid = authViewModel.usuarioActual?.uid.orEmpty(),
                             latitud = latitud,
                             longitud = longitud
                         )
@@ -1086,6 +1181,11 @@ fun AppNavigation(
                          * pertenecientes a la cuenta que cerró sesión.
                          */
                         PartidoReminderScheduler
+                            .cancelarTodos(
+                                context
+                            )
+
+                        ValoracionReminderScheduler
                             .cancelarTodos(
                                 context
                             )
