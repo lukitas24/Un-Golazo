@@ -13,18 +13,26 @@ data class Reserva(
     val usuarioId: String = "",
 
     /*
-     * Nuevos campos para identificar correctamente al destinatario
-     * de las notificaciones.
+     * Usuario que hizo la reserva.
      */
     val usuarioUid: String = "",
     val usuarioEmail: String = "",
-
     val usuarioNombre: String = "",
+
+    /*
+     * Dueño de la cancha.
+     *
+     * Guardarlos también en la reserva hace que el backend no dependa
+     * de una segunda consulta para enviar NUEVA_SOLICITUD_RESERVA.
+     * El email sirve como fallback para canchas antiguas.
+     */
+    val propietarioCanchaUid: String = "",
+    val propietarioCanchaEmail: String = "",
 
     val fecha: String = "",
     val hora: String = "",
 
-    val estado: String = "Pendiente", // Pendiente, Confirmada, Rechazada, Cancelada
+    val estado: String = "Pendiente",
 
     val partidoId: String? = null
 )
