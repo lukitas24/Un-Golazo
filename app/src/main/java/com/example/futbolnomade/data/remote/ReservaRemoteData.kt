@@ -116,15 +116,16 @@ class ReservaRemoteDataSource {
      */
     suspend fun crearReserva(
         reserva: Reserva
-    ) {
+    ): String {
         try {
             val reservaRef =
                 reservasCollection
                     .document()
 
+            val reservaId = reservaRef.id
             val reservaConId =
                 reserva.copy(
-                    id = reservaRef.id
+                    id = reservaId
                 )
 
             val batch =
@@ -183,7 +184,7 @@ class ReservaRemoteDataSource {
                             reserva.canchaId,
 
                         reservaId =
-                            reservaRef.id,
+                            reservaId,
 
                         actorUid =
                             reserva.usuarioUid,
@@ -205,9 +206,12 @@ class ReservaRemoteDataSource {
 
             batch.commit()
                 .await()
+            
+            return reservaId
 
         } catch (e: Exception) {
             e.printStackTrace()
+            return ""
         }
     }
 

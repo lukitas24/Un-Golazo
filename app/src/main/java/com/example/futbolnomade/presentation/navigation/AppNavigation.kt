@@ -809,6 +809,7 @@ fun AppNavigation(
                             longitud ->
 
                         partidoViewModel.crearPartido(
+                            context = context,
                             titulo = titulo,
                             horario = horario,
                             fecha = fecha,
@@ -995,7 +996,8 @@ fun AppNavigation(
                             ) == true
 
                         reservaViewModel.crearReserva(
-                            com.example.futbolnomade.domain.model.Reserva(
+                            context = context,
+                            reserva = com.example.futbolnomade.domain.model.Reserva(
                                 canchaId = idCancha,
                                 canchaNombre = cancha?.nombre ?: "",
                                 usuarioId = perfilViewModel.email,
@@ -1235,6 +1237,7 @@ fun AppNavigation(
                 ValorarPartidoScreen(
                     partido = partido,
                     usuarioActual = perfilViewModel.email,
+                    usuarioActualUid = perfilViewModel.uid,
                     guardando = valoracionViewModel.guardando,
                     error = valoracionViewModel.error,
 

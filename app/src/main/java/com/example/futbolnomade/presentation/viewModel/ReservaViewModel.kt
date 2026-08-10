@@ -57,9 +57,24 @@ class ReservaViewModel : ViewModel() {
         }
     }
 
-    fun crearReserva(reserva: Reserva) {
+    fun crearReserva(context: Context, reserva: Reserva) {
         viewModelScope.launch {
-            repository.crearReserva(reserva)
+            val reservaId = repository.crearReserva(reserva)
+            
+            // Notificar al dueño de la cancha (Gratis, sin Plan Blaze)
+            if (reserva.propietarioCanchaUid.isNotBlank() && reserva.estado == "Pendiente") {
+                notificationSender.enviarNotificacionAUsuario(
+                    context = context,
+                    uid = reserva.propietarioCanchaUid,
+                    titulo = "Nueva Solicitud de Reserva 🏟️",
+                    mensaje = "${reserva.usuarioNombre} quiere reservar en ${reserva.canchaNombre}",
+                    data = mapOf(
+                        "tipo" to "NUEVA_SOLICITUD",
+                        "reservaId" to reservaId,
+                        "canchaId" to reserva.canchaId
+                    )
+                )
+            }
         }
     }
 
@@ -69,12 +84,11 @@ class ReservaViewModel : ViewModel() {
         }
     }
 
-    fun responderReserva(context: Context, reservaId: String, nuevoEstado: String) {
+    fun responderReserva(context: Context, reserva: Reserva, nuevoEstado: String) {
         viewModelScope.launch {
-            repository.actualizarEstadoReserva(reservaId, nuevoEstado)
+            repository.actualizarEstadoReserva(reserva.id, nuevoEstado)
             
-            val reserva = uiState.reservas.find { it.id == reservaId }
-            if (reserva != null && reserva.usuarioId.isNotBlank()) {
+            if (reserva.usuarioUid.isNotBlank()) {
                 val titulo = if (nuevoEstado == "Confirmada") "¡Reserva Aprobada! ⚽" else "Reserva Rechazada ❌"
                 val mensaje = if (nuevoEstado == "Confirmada") 
                     "Tu turno en ${reserva.canchaNombre} ha sido confirmado." else 
@@ -82,12 +96,12 @@ class ReservaViewModel : ViewModel() {
 
                 notificationSender.enviarNotificacionAUsuario(
                     context = context,
-                    uid = reserva.usuarioId,
+                    uid = reserva.usuarioUid,
                     titulo = titulo,
                     mensaje = mensaje,
                     data = mapOf(
                         "tipo" to "RESERVA_STATUS",
-                        "reservaId" to reservaId,
+                        "reservaId" to reserva.id,
                         "estado" to nuevoEstado
                     )
                 )

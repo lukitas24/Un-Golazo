@@ -26,6 +26,8 @@ class NotificationTokenRemoteDataSource(
         val token =
             messaging.token.await()
 
+        Log.d("FutbolNomadeFCM", "Registrando dispositivo. UID: $uid, Token: $token")
+
         guardarToken(
             uid = uid,
             token = token

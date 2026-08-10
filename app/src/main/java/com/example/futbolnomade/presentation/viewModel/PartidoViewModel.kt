@@ -1,10 +1,12 @@
 package com.example.futbolnomade.presentation.viewModel
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.futbolnomade.data.remote.notification.FcmNotificationSender
 import com.example.futbolnomade.data.repository.PartidoRepositoryImpl
 import com.example.futbolnomade.data.repository.ReservaRepositoryImpl
 import com.example.futbolnomade.domain.model.EstadoPartido
@@ -25,6 +27,8 @@ class PartidoViewModel(
     ReservaRepository =
         ReservaRepositoryImpl()
 ) : ViewModel() {
+
+    private val notificationSender = FcmNotificationSender()
 
     var uiState by mutableStateOf(
         PartidoUiState()
@@ -101,6 +105,7 @@ class PartidoViewModel(
     }
 
     fun crearPartido(
+        context: Context,
         titulo: String,
         horario: String,
         fecha: String,
@@ -256,10 +261,25 @@ class PartidoViewModel(
                             partidoId
                     )
 
-                reservaRepository
+                val reservaId = reservaRepository
                     .crearReserva(
                         reserva
                     )
+                
+                // Notificar al dueño de la cancha (Gratis, sin Plan Blaze)
+                if (!esDuenioCancha && !propietarioCanchaUid.isNullOrBlank()) {
+                    notificationSender.enviarNotificacionAUsuario(
+                        context = context,
+                        uid = propietarioCanchaUid,
+                        titulo = "Nueva Solicitud de Reserva 🏟️",
+                        mensaje = "$creador quiere reservar en $nombreCancha para un partido.",
+                        data = mapOf(
+                            "tipo" to "NUEVA_SOLICITUD",
+                            "reservaId" to reservaId,
+                            "partidoId" to partidoId
+                        )
+                    )
+                }
             }
 
             cargarPartidos()

@@ -34,6 +34,8 @@ class FcmNotificationSender {
     suspend fun enviarNotificacionAUsuario(context: Context, uid: String, titulo: String, mensaje: String, data: Map<String, String> = emptyMap()) {
         withContext(Dispatchers.IO) {
             try {
+                Log.d("FCM_SENDER", "Preparando notificación para UID: $uid")
+                
                 val snapshot = db.collection("jugadores")
                     .document(uid)
                     .collection("dispositivos")
@@ -42,7 +44,12 @@ class FcmNotificationSender {
                     .await()
 
                 val tokens = snapshot.documents.mapNotNull { it.getString("token") }
-                if (tokens.isEmpty()) return@withContext
+                Log.d("FCM_SENDER", "Tokens activos para $uid: ${tokens.size}")
+                
+                if (tokens.isEmpty()) {
+                    Log.w("FCM_SENDER", "El usuario $uid no tiene dispositivos vinculados.")
+                    return@withContext
+                }
 
                 val (accessToken, projectId) = getAccessToken(context)
                 val fcmUrl = "https://fcm.googleapis.com/v1/projects/$projectId/messages:send"
@@ -51,7 +58,7 @@ class FcmNotificationSender {
                     enviarAFcmV1(fcmUrl, token, titulo, mensaje, data, accessToken)
                 }
             } catch (e: Exception) {
-                Log.e("FCM_SENDER", "Error al procesar notificación", e)
+                Log.e("FCM_SENDER", "Falla en el proceso de notificación", e)
             }
         }
     }
@@ -67,9 +74,17 @@ class FcmNotificationSender {
         val data = JSONObject()
         dataMap.forEach { (k, v) -> data.put(k, v) }
 
+        val android = JSONObject()
+        val androidNotification = JSONObject()
+        androidNotification.put("channel_id", "activity_updates")
+        androidNotification.put("priority", "high")
+        android.put("notification", androidNotification)
+
         message.put("token", token)
         message.put("notification", notification)
         message.put("data", data)
+        message.put("android", android)
+        
         json.put("message", message)
 
         val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
@@ -81,14 +96,15 @@ class FcmNotificationSender {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: java.io.IOException) {
-                Log.e("FCM_SENDER", "Falla de red", e)
+                Log.e("FCM_SENDER", "Falla de red enviando a $token", e)
             }
 
             override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string()
                 if (response.isSuccessful) {
-                    Log.d("FCM_SENDER", "Notificación HTTP v1 enviada con éxito")
+                    Log.d("FCM_SENDER", "Notificación enviada con éxito a $token")
                 } else {
-                    Log.e("FCM_SENDER", "Error de Firebase: ${response.body?.string()}")
+                    Log.e("FCM_SENDER", "Error de Firebase ($token): $responseBody")
                 }
                 response.close()
             }

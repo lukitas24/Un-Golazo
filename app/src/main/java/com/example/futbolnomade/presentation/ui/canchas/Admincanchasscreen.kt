@@ -130,13 +130,13 @@ fun AdminCanchaScreen(
                     CardReservaPendiente(
                         reserva = reserva,
                         onAceptar = {
-                            reservaViewModel.responderReserva(context, reserva.id, "Confirmada")
+                            reservaViewModel.responderReserva(context, reserva, "Confirmada")
                             reserva.partidoId?.let { pid ->
                                 partidoViewModel.actualizarEstadoPartido(pid, EstadoPartido.RESERVA_APROBADA)
                             }
                         },
                         onRechazar = {
-                            reservaViewModel.responderReserva(context, reserva.id, "Rechazada")
+                            reservaViewModel.responderReserva(context, reserva, "Rechazada")
                             reserva.partidoId?.let { pid ->
                                 partidoViewModel.actualizarEstadoPartido(pid, EstadoPartido.RESERVA_RECHAZADA)
                             }

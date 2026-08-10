@@ -17,8 +17,8 @@ class ReservaRepositoryImpl(
         return remoteDataSource.obtenerReservasPorCancha(canchaId)
     }
 
-    override suspend fun crearReserva(reserva: Reserva) {
-        remoteDataSource.crearReserva(reserva)
+    override suspend fun crearReserva(reserva: Reserva): String {
+        return remoteDataSource.crearReserva(reserva)
     }
 
     override suspend fun cancelarReserva(reservaId: String) {
