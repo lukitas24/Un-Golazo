@@ -906,7 +906,7 @@ fun AppNavigation(
                     },
 
                     onEliminarPartido = { id ->
-                        partidoViewModel.eliminarPartido(id)
+                        partidoViewModel.eliminarPartido(context, id)
                         navController.popBackStack()
                     },
 
@@ -1247,6 +1247,7 @@ fun AppNavigation(
 
                     onGuardar = { valoracion ->
                         valoracionViewModel.guardarValoracion(
+                            context = context,
                             valoracion = valoracion
                         ) { guardada ->
                             if (guardada) {

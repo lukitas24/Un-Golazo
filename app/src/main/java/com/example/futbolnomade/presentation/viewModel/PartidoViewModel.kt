@@ -226,8 +226,64 @@ class PartidoViewModel(
         }
     }
 
-    fun eliminarPartido(id: String) {
+    fun actualizarPartido(context: Context, partido: Partido) {
         viewModelScope.launch {
+            val partidoAntes = uiState.partidos.find { it.id == partido.id }
+            repository.actualizarPartido(partido)
+
+            if (partidoAntes != null) {
+                val cambios = mutableListOf<String>()
+                if (partidoAntes.fecha != partido.fecha) cambios.add("fecha")
+                if (partidoAntes.horario != partido.horario) cambios.add("horario")
+                if (partidoAntes.ubicacion.trim() != partido.ubicacion.trim()) cambios.add("ubicación")
+
+                if (cambios.isNotEmpty()) {
+                    val destinatarios = partidoAntes.usuariosAnotadosUids.filter { it.isNotBlank() && it != partidoAntes.creadorUid }
+                    val destinatariosEmails = partidoAntes.usuariosAnotados.filter { it != partidoAntes.creador }
+
+                    Log.i("NOTIFICACION_CHECK", "⚙️ Partido modificado. Notificando a ${destinatarios.size} participantes...")
+
+                    val cambiosTexto = cambios.joinToString(", ")
+
+                    // Notificar a cada participante (excepto al creador)
+                    destinatarios.zip(destinatariosEmails).forEach { (uid, email) ->
+                        notificationSender.enviarNotificacionAUsuario(
+                            context = context,
+                            uid = uid,
+                            fallbackEmail = email,
+                            titulo = "Cambio en tu partido ⚽",
+                            mensaje = "Se modificó la $cambiosTexto en \"${partido.titulo}\".",
+                            data = mapOf("tipo" to "PARTIDO_MODIFICADO", "partidoId" to partido.id)
+                        )
+                    }
+                }
+            }
+            cargarPartidos()
+        }
+    }
+
+    fun eliminarPartido(context: Context, id: String) {
+        viewModelScope.launch {
+            val partido = uiState.partidos.find { it.id == id }
+
+            if (partido != null) {
+                val destinatarios = partido.usuariosAnotadosUids.filter { it.isNotBlank() && it != partido.creadorUid }
+                val destinatariosEmails = partido.usuariosAnotados.filter { it != partido.creador }
+
+                Log.i("NOTIFICACION_CHECK", "🗑️ Partido eliminado. Notificando a ${destinatarios.size} participantes...")
+
+                destinatarios.zip(destinatariosEmails).forEach { (uid, email) ->
+                    notificationSender.enviarNotificacionAUsuario(
+                        context = context,
+                        uid = uid,
+                        fallbackEmail = email,
+                        titulo = "Partido cancelado ❌",
+                        mensaje = "El organizador canceló el partido \"${partido.titulo}\".",
+                        data = mapOf("tipo" to "PARTIDO_CANCELADO")
+                    )
+                }
+            }
+
             repository.eliminarPartido(id)
             cargarPartidos()
         }

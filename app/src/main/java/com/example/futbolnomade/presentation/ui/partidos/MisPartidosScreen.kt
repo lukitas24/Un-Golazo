@@ -278,9 +278,11 @@ fun MisPartidosScreen(
                 )
             },
             confirmButton = {
+                val context = androidx.compose.ui.platform.LocalContext.current
                 TextButton(
                     onClick = {
                         partidoViewModel.eliminarPartido(
+                            context,
                             partidoId
                         )
 
