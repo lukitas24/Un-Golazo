@@ -20,119 +20,107 @@ class FcmNotificationSender {
     private val client = OkHttpClient()
 
     private suspend fun getAccessToken(context: Context): Pair<String, String> = withContext(Dispatchers.IO) {
-        val inputStream: InputStream = context.resources.openRawResource(R.raw.service_account)
-        val json = JSONObject(inputStream.bufferedReader().use { it.readText() })
-        val projectId = json.getString("project_id")
-        
-        val credentials = GoogleCredentials.fromStream(context.resources.openRawResource(R.raw.service_account))
-            .createScoped(listOf("https://www.googleapis.com/auth/firebase.messaging"))
-        
-        credentials.refreshIfExpired()
-        Pair(credentials.accessToken.tokenValue, projectId)
+        try {
+            val inputStream: InputStream = context.resources.openRawResource(R.raw.service_account)
+            val jsonText = inputStream.bufferedReader().use { it.readText() }
+            val json = JSONObject(jsonText)
+            val projectId = json.getString("project_id")
+            
+            val credentials = GoogleCredentials.fromStream(context.resources.openRawResource(R.raw.service_account))
+                .createScoped(listOf("https://www.googleapis.com/auth/firebase.messaging"))
+            
+            credentials.refreshIfExpired()
+            val token = credentials.accessToken.tokenValue
+            Log.i("NOTIFICACION_CHECK", "✅ Access Token obtenido para: $projectId")
+            Pair(token, projectId)
+        } catch (e: Exception) {
+            Log.e("NOTIFICACION_CHECK", "❌ Error al leer service_account.json: ${e.message}")
+            throw e
+        }
     }
 
     suspend fun enviarNotificacionAUsuario(context: Context, uid: String, titulo: String, mensaje: String, data: Map<String, String> = emptyMap(), fallbackEmail: String? = null) {
         withContext(Dispatchers.IO) {
             try {
-                Log.d("FCM_SENDER", "Preparando notificación. UID: $uid, Email: $fallbackEmail")
+                Log.i("NOTIFICACION_CHECK", "🚀 INICIO ENVÍO -> UID: $uid, Email: $fallbackEmail")
                 
                 var tokens: List<String> = emptyList()
 
-                // 1. Intentar por UID
                 if (uid.isNotBlank()) {
-                    val snapshot = db.collection("jugadores")
-                        .document(uid)
-                        .collection("dispositivos")
-                        .whereEqualTo("activo", true)
-                        .get()
-                        .await()
+                    val snapshot = db.collection("jugadores").document(uid).collection("dispositivos").whereEqualTo("activo", true).get().await()
                     tokens = snapshot.documents.mapNotNull { it.getString("token") }
                 }
 
-                // 2. Si no hay tokens y tenemos email, intentar buscar el UID por email
                 if (tokens.isEmpty() && !fallbackEmail.isNullOrBlank()) {
-                    Log.d("FCM_SENDER", "No se hallaron tokens por UID, buscando por email: $fallbackEmail")
-                    val userQuery = db.collection("jugadores")
-                        .whereEqualTo("email", fallbackEmail.trim().lowercase())
-                        .get()
-                        .await()
-                    
-                    val foundUid = userQuery.documents.firstOrNull()?.id
-                    if (foundUid != null) {
-                        val snapshot = db.collection("jugadores")
-                            .document(foundUid)
-                            .collection("dispositivos")
-                            .whereEqualTo("activo", true)
-                            .get()
-                            .await()
+                    val userQuery = db.collection("jugadores").whereEqualTo("email", fallbackEmail.trim().lowercase()).get().await()
+                    val foundDoc = userQuery.documents.firstOrNull()
+                    if (foundDoc != null) {
+                        val snapshot = db.collection("jugadores").document(foundDoc.id).collection("dispositivos").whereEqualTo("activo", true).get().await()
                         tokens = snapshot.documents.mapNotNull { it.getString("token") }
                     }
                 }
 
-                Log.d("FCM_SENDER", "Tokens finales encontrados: ${tokens.size}")
-                
                 if (tokens.isEmpty()) {
-                    Log.w("FCM_SENDER", "Imposible enviar: El destinatario no tiene dispositivos registrados.")
+                    Log.w("NOTIFICACION_CHECK", "⚠️ No hay teléfonos registrados para el destino. Asegúrate que el destinatario haya abierto la app recientemente.")
                     return@withContext
                 }
 
                 val (accessToken, projectId) = getAccessToken(context)
-                val fcmUrl = "https://fcm.googleapis.com/v1/projects/$projectId/messages:send"
+                val url = "https://fcm.googleapis.com/v1/projects/$projectId/messages:send"
                 
                 tokens.forEach { token ->
-                    enviarAFcmV1(fcmUrl, token, titulo, mensaje, data, accessToken)
+                    enviarAFcmV1(url, token, titulo, mensaje, data, accessToken)
                 }
             } catch (e: Exception) {
-                Log.e("FCM_SENDER", "Error crítico en FcmNotificationSender", e)
+                Log.e("NOTIFICACION_CHECK", "❌ Error fatal enviando notificación", e)
             }
         }
     }
 
     private fun enviarAFcmV1(url: String, token: String, titulo: String, mensaje: String, dataMap: Map<String, String>, accessToken: String) {
-        val json = JSONObject()
-        val message = JSONObject()
-        
-        val notification = JSONObject()
-        notification.put("title", titulo)
-        notification.put("body", mensaje)
-        
-        val data = JSONObject()
-        dataMap.forEach { (k, v) -> data.put(k, v) }
+        try {
+            val json = JSONObject()
+            val message = JSONObject()
+            val notification = JSONObject()
+            notification.put("title", titulo)
+            notification.put("body", mensaje)
+            
+            val data = JSONObject()
+            dataMap.forEach { (k, v) -> data.put(k, v) }
 
-        val android = JSONObject()
-        val androidNotification = JSONObject()
-        androidNotification.put("channel_id", "activity_updates")
-        androidNotification.put("priority", "high")
-        android.put("notification", androidNotification)
+            val android = JSONObject()
+            android.put("priority", "high")
+            
+            val androidNotification = JSONObject()
+            androidNotification.put("channel_id", "activity_updates")
+            android.put("notification", androidNotification)
 
-        message.put("token", token)
-        message.put("notification", notification)
-        message.put("data", data)
-        message.put("android", android)
-        
-        json.put("message", message)
+            message.put("token", token)
+            message.put("notification", notification)
+            message.put("data", data)
+            message.put("android", android)
+            json.put("message", message)
 
-        val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
-        val request = Request.Builder()
-            .url(url)
-            .post(body)
-            .addHeader("Authorization", "Bearer $accessToken")
-            .build()
+            val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+            val request = Request.Builder().url(url).post(body).addHeader("Authorization", "Bearer $accessToken").build()
 
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: java.io.IOException) {
-                Log.e("FCM_SENDER", "Falla de red enviando a $token", e)
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                val responseBody = response.body?.string()
-                if (response.isSuccessful) {
-                    Log.d("FCM_SENDER", "Notificación enviada con éxito a $token")
-                } else {
-                    Log.e("FCM_SENDER", "Error de Firebase ($token): $responseBody")
+            client.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: java.io.IOException) {
+                    Log.e("NOTIFICACION_CHECK", "❌ Error de red al conectar con Google")
                 }
-                response.close()
-            }
-        })
+
+                override fun onResponse(call: Call, response: Response) {
+                    val rb = response.body?.string()
+                    if (response.isSuccessful) {
+                        Log.i("NOTIFICACION_CHECK", "✅ MENSAJE ENTREGADO A GOOGLE")
+                    } else {
+                        Log.e("NOTIFICACION_CHECK", "❌ FIREBASE RECHAZÓ EL MENSAJE: $rb")
+                    }
+                    response.close()
+                }
+            })
+        } catch (e: Exception) {
+            Log.e("NOTIFICACION_CHECK", "❌ Error al construir JSON", e)
+        }
     }
 }

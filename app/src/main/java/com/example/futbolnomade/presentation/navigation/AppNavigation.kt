@@ -995,6 +995,7 @@ fun AppNavigation(
                                 ignoreCase = true
                             ) == true
 
+                        android.util.Log.d("RESERVA_NAV", "Usuario reservando: ${perfilViewModel.email}. Dueño cancha: ${cancha?.propietario}")
                         reservaViewModel.crearReserva(
                             context = context,
                             reserva = com.example.futbolnomade.domain.model.Reserva(

@@ -26,12 +26,13 @@ class NotificationTokenRemoteDataSource(
         val token =
             messaging.token.await()
 
-        Log.d("FutbolNomadeFCM", "Registrando dispositivo. UID: $uid, Token: $token")
+        Log.i("NOTIFICACION_CHECK", "📱 Mi Token actual es: $token")
 
         guardarToken(
             uid = uid,
             token = token
         ).await()
+        Log.i("NOTIFICACION_CHECK", "✅ Mi Token se guardó en Firestore bajo el UID: $uid")
     }
 
     fun actualizarToken(

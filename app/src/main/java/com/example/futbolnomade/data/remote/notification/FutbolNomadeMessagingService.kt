@@ -41,6 +41,8 @@ class FutbolNomadeMessagingService :
         message: RemoteMessage
     ) {
         super.onMessageReceived(message)
+        
+        Log.i("NOTIFICACION_CHECK", "📩 ¡MENSAJE RECIBIDO! De: ${message.from}")
 
         val data =
             message.data

@@ -267,10 +267,11 @@ class PartidoViewModel(
                     )
                 
                 // Notificar al dueño de la cancha (Gratis, sin Plan Blaze)
-                if (!esDuenioCancha && !propietarioCanchaUid.isNullOrBlank()) {
+                if (!esDuenioCancha && (!propietarioCanchaUid.isNullOrBlank() || !propietarioCancha.isNullOrBlank())) {
                     notificationSender.enviarNotificacionAUsuario(
                         context = context,
-                        uid = propietarioCanchaUid,
+                        uid = propietarioCanchaUid.orEmpty(),
+                        fallbackEmail = propietarioCancha,
                         titulo = "Nueva Solicitud de Reserva 🏟️",
                         mensaje = "$creador quiere reservar en $nombreCancha para un partido.",
                         data = mapOf(
