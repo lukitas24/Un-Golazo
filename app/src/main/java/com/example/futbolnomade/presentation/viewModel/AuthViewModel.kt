@@ -55,7 +55,14 @@ class AuthViewModel(
 
     init {
         actualizarUsuarioDesdeFirebase()
-        accesoDesbloqueado = false
+        // Si hay usuario al iniciar, desbloqueamos y registramos el dispositivo
+        accesoDesbloqueado = usuarioActual != null
+        
+        if (accesoDesbloqueado) {
+            viewModelScope.launch {
+                registrarDispositivoActual()
+            }
+        }
     }
 
     fun login(
@@ -75,26 +82,28 @@ class AuthViewModel(
                     password
                 ).await()
 
-                actualizarUsuarioDesdeFirebase()
+                val firebaseUser = auth.currentUser
+                if (firebaseUser != null) {
+                    // REPARACIÓN POST-BORRADO: Asegurar que el documento del jugador existe en Firestore
+                    val jugadorExistente = jugadorRepository.obtenerJugador(firebaseUser.uid)
+                    if (jugadorExistente == null) {
+                        val nuevoJugador = Jugador(
+                            id = firebaseUser.uid,
+                            nombre = firebaseUser.displayName ?: firebaseUser.email?.substringBefore("@") ?: "Usuario",
+                            email = cleanEmail
+                        )
+                        jugadorRepository.guardarJugador(nuevoJugador)
+                    }
+                }
 
-                /*
-                 * Asocia el token FCM de este teléfono
-                 * con el UID que acaba de iniciar sesión.
-                 */
+                actualizarUsuarioDesdeFirebase()
                 registrarDispositivoActual()
 
                 accesoDesbloqueado = true
-
                 onResult(AuthResult.Success)
             } catch (exception: Exception) {
                 accesoDesbloqueado = false
-
-                onResult(
-                    AuthResult.Error(
-                        exception.message
-                            ?: "Email o contraseña incorrectos"
-                    )
-                )
+                onResult(AuthResult.Error(exception.message ?: "Email o contraseña incorrectos"))
             }
         }
     }

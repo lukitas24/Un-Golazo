@@ -61,11 +61,12 @@ class ReservaViewModel : ViewModel() {
         viewModelScope.launch {
             val reservaId = repository.crearReserva(reserva)
             
-            // Notificar al dueño de la cancha (Gratis, sin Plan Blaze)
-            if (reserva.propietarioCanchaUid.isNotBlank() && reserva.estado == "Pendiente") {
+            // Notificar al dueño de la cancha
+            if (reserva.propietarioCanchaUid.isNotBlank() || reserva.propietarioCanchaEmail.isNotBlank()) {
                 notificationSender.enviarNotificacionAUsuario(
                     context = context,
                     uid = reserva.propietarioCanchaUid,
+                    fallbackEmail = reserva.propietarioCanchaEmail,
                     titulo = "Nueva Solicitud de Reserva 🏟️",
                     mensaje = "${reserva.usuarioNombre} quiere reservar en ${reserva.canchaNombre}",
                     data = mapOf(
@@ -88,7 +89,7 @@ class ReservaViewModel : ViewModel() {
         viewModelScope.launch {
             repository.actualizarEstadoReserva(reserva.id, nuevoEstado)
             
-            if (reserva.usuarioUid.isNotBlank()) {
+            if (reserva.usuarioUid.isNotBlank() || reserva.usuarioEmail.isNotBlank() || reserva.usuarioId.isNotBlank()) {
                 val titulo = if (nuevoEstado == "Confirmada") "¡Reserva Aprobada! ⚽" else "Reserva Rechazada ❌"
                 val mensaje = if (nuevoEstado == "Confirmada") 
                     "Tu turno en ${reserva.canchaNombre} ha sido confirmado." else 
@@ -97,6 +98,7 @@ class ReservaViewModel : ViewModel() {
                 notificationSender.enviarNotificacionAUsuario(
                     context = context,
                     uid = reserva.usuarioUid,
+                    fallbackEmail = reserva.usuarioEmail.ifBlank { reserva.usuarioId },
                     titulo = titulo,
                     mensaje = mensaje,
                     data = mapOf(

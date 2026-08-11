@@ -21,25 +21,21 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
         val geofenceTransition = geofencingEvent.geofenceTransition
 
-        if (geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER ||
-            geofenceTransition == Geofence.GEOFENCE_TRANSITION_EXIT
-        ) {
+        // Solo notificamos la ENTRADA para evitar spam cuando el sistema refresca geocercas
+        if (geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER) {
             val triggeringGeofences = geofencingEvent.triggeringGeofences ?: emptyList()
 
             triggeringGeofences.forEach { geofence ->
                 val requestId = geofence.requestId
-                val transitionType = if (geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER) "ENTERED" else "EXITED"
+                Log.d("GeofenceReceiver", "Entrando a geocerca: $requestId")
                 
-                Log.d("GeofenceReceiver", "Geofence ID: $requestId - Transition: $transitionType")
-                
-                val title = if (geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER) "¡Llegaste al partido!" else "¡Hasta la próxima!"
-                val message = if (geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER) 
-                    "Has entrado al área del partido: $requestId" else 
-                    "Has salido del área del partido: $requestId"
+                val title = "¡Llegaste al partido! ⚽"
+                val message = "Ya estás en el área de: $requestId. ¡A jugar!"
 
                 NotificationHelper.showNotification(context, title, message)
             }
-        } else {
+        }
+else {
             Log.e("GeofenceReceiver", "Invalid transition type: $geofenceTransition")
         }
     }
