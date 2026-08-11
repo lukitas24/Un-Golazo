@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.futbolnomade.domain.model.Cancha
+import com.google.android.gms.maps.MapsInitializer
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -141,6 +142,7 @@ fun CrearPartidoScreen(
     }
 
     LaunchedEffect(Unit) {
+        MapsInitializer.initialize(context)
         if (!tienePermisoUbicacion) {
             launcherPermisos.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }

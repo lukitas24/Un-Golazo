@@ -879,6 +879,7 @@ fun AppNavigation(
 
                     onAnotarse = { id, usuario ->
                         partidoViewModel.anotarseAPartido(
+                            context = context,
                             partidoId = id,
                             usuario = usuario,
                             usuarioUid = authViewModel.usuarioActual?.uid.orEmpty()
@@ -887,6 +888,7 @@ fun AppNavigation(
 
                     onCancelarInscripcion = { id, usuario ->
                         partidoViewModel.cancelarInscripcion(
+                            context = context,
                             partidoId = id,
                             usuario = usuario,
                             usuarioUid = authViewModel.usuarioActual?.uid.orEmpty()
@@ -895,6 +897,7 @@ fun AppNavigation(
 
                     onEliminarJugador = { id, jugador ->
                         partidoViewModel.eliminarJugador(
+                            context = context,
                             partidoId = id,
                             jugadorAEliminar = jugador,
                             usuarioSolicitante =
