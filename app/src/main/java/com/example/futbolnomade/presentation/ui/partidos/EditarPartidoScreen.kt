@@ -866,7 +866,9 @@ fun EditarPartidoScreen(
                                     SimpleDateFormat(
                                         "dd/MM/yyyy",
                                         Locale.getDefault()
-                                    )
+                                    ).apply {
+                                        timeZone = java.util.TimeZone.getTimeZone("UTC")
+                                    }
 
                                 fecha =
                                     formatter.format(

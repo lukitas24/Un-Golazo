@@ -889,7 +889,9 @@ fun CrearPartidoScreen(
                             val formatter = SimpleDateFormat(
                                 "dd/MM/yyyy",
                                 Locale.getDefault()
-                            )
+                            ).apply {
+                                timeZone = java.util.TimeZone.getTimeZone("UTC")
+                            }
 
                             fecha = formatter.format(Date(millis))
                             diasAdelante = 0
