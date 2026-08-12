@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -17,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -24,209 +27,706 @@ import androidx.compose.ui.unit.sp
 import com.example.futbolnomade.presentation.viewModel.AuthResult
 import com.example.futbolnomade.presentation.viewModel.AuthViewModel
 
-private val ColorFondo    = Color(0xFF171516)
-private val ColorCampo    = Color(0xFF7A7A7A)
-private val ColorVerde    = Color(0xFF00FF7F)
-private val ColorError    = Color.Red
-private val ColorTexto    = Color.White
-private val ColorSubtexto = Color.White.copy(alpha = 0.75f)
+private val ColorFondo =
+    Color(0xFF171516)
+
+private val ColorCampo =
+    Color(0xFF7A7A7A)
+
+private val ColorVerde =
+    Color(0xFF00FF7F)
+
+private val ColorError =
+    Color.Red
+
+private val ColorTexto =
+    Color.White
+
+private val ColorSubtexto =
+    Color.White.copy(
+        alpha = 0.75f
+    )
 
 @Composable
 fun RegisterScreen(
-    authViewModel: AuthViewModel,           // ← siempre recibido desde AppNavigation, sin default
-    onRegistroExitoso: (nombre: String, email: String, uid: String?) -> Unit,
+    authViewModel: AuthViewModel,
+    onRegistroExitoso: (
+        nombre: String,
+        email: String,
+        uid: String?
+    ) -> Unit,
     onVolver: () -> Unit
 ) {
-    var nombre    by remember { mutableStateOf("") }
-    var email     by remember { mutableStateOf("") }
-    var password  by remember { mutableStateOf("") }
-    var confirmar by remember { mutableStateOf("") }
 
-    var nombreError    by remember { mutableStateOf<String?>(null) }
-    var emailError     by remember { mutableStateOf<String?>(null) }
-    var passwordError  by remember { mutableStateOf<String?>(null) }
-    var confirmarError by remember { mutableStateOf<String?>(null) }
-    var registroError  by remember { mutableStateOf<String?>(null) }
+    var nombre by remember {
+        mutableStateOf("")
+    }
 
-    var verPassword  by remember { mutableStateOf(false) }
-    var verConfirmar by remember { mutableStateOf(false) }
+    var email by remember {
+        mutableStateOf("")
+    }
+
+    var password by remember {
+        mutableStateOf("")
+    }
+
+    var confirmar by remember {
+        mutableStateOf("")
+    }
+
+    var nombreError by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var emailError by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var passwordError by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var confirmarError by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var registroError by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var verPassword by remember {
+        mutableStateOf(false)
+    }
+
+    var verConfirmar by remember {
+        mutableStateOf(false)
+    }
 
     fun validar(): Boolean {
-        nombreError    = null
-        emailError     = null
-        passwordError  = null
-        confirmarError = null
-        registroError  = null
 
-        if (nombre.trim().isEmpty())       { nombreError    = "Ingresá tu nombre";                          return false }
-        if (nombre.trim().length < 2)      { nombreError    = "El nombre debe tener al menos 2 caracteres"; return false }
-        if (email.trim().isEmpty())        { emailError     = "Ingresá tu email";                           return false }
-        if (!Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches()) { emailError = "Email inválido";       return false }
-        if (password.trim().isEmpty())     { passwordError  = "Ingresá una contraseña";                     return false }
-        if (password.trim().length < 6)    { passwordError  = "Mínimo 6 caracteres";                        return false }
-        if (confirmar.trim().isEmpty())    { confirmarError = "Confirmá la contraseña";                     return false }
-        if (confirmar.trim() != password.trim()) { confirmarError = "Las contraseñas no coinciden";        return false }
+        nombreError = null
+        emailError = null
+        passwordError = null
+        confirmarError = null
+        registroError = null
+
+        if (nombre.trim().isEmpty()) {
+
+            nombreError =
+                "Ingresá tu nombre"
+
+            return false
+        }
+
+        if (nombre.trim().length < 2) {
+
+            nombreError =
+                "El nombre debe tener al menos 2 caracteres"
+
+            return false
+        }
+
+        if (email.trim().isEmpty()) {
+
+            emailError =
+                "Ingresá tu email"
+
+            return false
+        }
+
+        if (
+            !Patterns.EMAIL_ADDRESS
+                .matcher(email.trim())
+                .matches()
+        ) {
+
+            emailError =
+                "Email inválido"
+
+            return false
+        }
+
+        /*
+         * MUY IMPORTANTE:
+         *
+         * NO usar password.trim()
+         */
+        if (password.isEmpty()) {
+
+            passwordError =
+                "Ingresá una contraseña"
+
+            return false
+        }
+
+        if (password.length < 6) {
+
+            passwordError =
+                "Mínimo 6 caracteres"
+
+            return false
+        }
+
+        if (confirmar.isEmpty()) {
+
+            confirmarError =
+                "Confirmá la contraseña"
+
+            return false
+        }
+
+        /*
+         * Comparamos EXACTAMENTE
+         * ambas contraseñas.
+         */
+        if (confirmar != password) {
+
+            confirmarError =
+                "Las contraseñas no coinciden"
+
+            return false
+        }
 
         return true
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(ColorFondo)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 36.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(ColorFondo)
+                .verticalScroll(
+                    rememberScrollState()
+                )
+                .padding(
+                    horizontal = 36.dp
+                ),
+        horizontalAlignment =
+            Alignment.CenterHorizontally
     ) {
-        Spacer(Modifier.height(24.dp))
 
-        Row(modifier = Modifier.fillMaxWidth()) {
-            IconButton(onClick = onVolver) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = ColorTexto)
+        Spacer(
+            Modifier.height(24.dp)
+        )
+
+        Row(
+            modifier =
+                Modifier.fillMaxWidth()
+        ) {
+
+            IconButton(
+                onClick =
+                    onVolver
+            ) {
+
+                Icon(
+                    Icons.AutoMirrored
+                        .Filled
+                        .ArrowBack,
+                    contentDescription =
+                        "Volver",
+                    tint =
+                        ColorTexto
+                )
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(
+            Modifier.height(8.dp)
+        )
 
-        Text("Crear cuenta", color = ColorTexto, fontSize = 30.sp, fontWeight = FontWeight.Bold)
+        Text(
+            text = "Crear cuenta",
+            color = ColorTexto,
+            fontSize = 30.sp,
+            fontWeight = FontWeight.Bold
+        )
 
-        Spacer(Modifier.height(40.dp))
+        Spacer(
+            Modifier.height(40.dp)
+        )
+
+        // ============================================================
+        // NOMBRE
+        // ============================================================
 
         CampoLabel("NOMBRE")
+
         OutlinedTextField(
             value = nombre,
-            onValueChange = { nombre = it; nombreError = null },
-            placeholder = { Text("Juan Pérez", color = ColorSubtexto) },
-            isError = nombreError != null,
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            colors = campoColors()
-        )
-        ErrorTexto(nombreError)
 
-        Spacer(Modifier.height(14.dp))
+            onValueChange = {
+
+                nombre = it
+                nombreError = null
+            },
+
+            keyboardOptions =
+                KeyboardOptions(
+                    keyboardType =
+                        KeyboardType.Text,
+                    imeAction =
+                        ImeAction.Next
+                ),
+
+            placeholder = {
+
+                Text(
+                    "Juan Pérez",
+                    color =
+                        ColorSubtexto
+                )
+            },
+
+            isError =
+                nombreError != null,
+
+            singleLine = true,
+
+            modifier =
+                Modifier.fillMaxWidth(),
+
+            shape =
+                RoundedCornerShape(14.dp),
+
+            colors =
+                campoColors()
+        )
+
+        ErrorTexto(
+            nombreError
+        )
+
+        Spacer(
+            Modifier.height(14.dp)
+        )
+
+        // ============================================================
+        // EMAIL
+        // ============================================================
 
         CampoLabel("EMAIL")
+
         OutlinedTextField(
             value = email,
-            onValueChange = { email = it; emailError = null; registroError = null },
-            placeholder = { Text("hello@reallygreatsite.com", color = ColorSubtexto) },
-            isError = emailError != null || registroError != null,
+
+            onValueChange = {
+
+                email = it
+                emailError = null
+                registroError = null
+            },
+
+            keyboardOptions =
+                KeyboardOptions(
+                    keyboardType =
+                        KeyboardType.Email,
+                    imeAction =
+                        ImeAction.Next
+                ),
+
+            placeholder = {
+
+                Text(
+                    "hello@reallygreatsite.com",
+                    color =
+                        ColorSubtexto
+                )
+            },
+
+            isError =
+                emailError != null ||
+                        registroError != null,
+
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            colors = campoColors()
+
+            modifier =
+                Modifier.fillMaxWidth(),
+
+            shape =
+                RoundedCornerShape(14.dp),
+
+            colors =
+                campoColors()
         )
-        ErrorTexto(emailError)
 
-        Spacer(Modifier.height(14.dp))
+        ErrorTexto(
+            emailError
+        )
 
-        CampoLabel("CONTRASEÑA")
+        Spacer(
+            Modifier.height(14.dp)
+        )
+
+        // ============================================================
+        // PASSWORD
+        // ============================================================
+
+        CampoLabel(
+            "CONTRASEÑA"
+        )
+
         OutlinedTextField(
             value = password,
-            onValueChange = { password = it; passwordError = null },
-            placeholder = { Text("••••••", color = ColorSubtexto) },
-            visualTransformation = if (verPassword) VisualTransformation.None else PasswordVisualTransformation(),
+
+            onValueChange = {
+
+                /*
+                 * Guardamos exactamente lo escrito.
+                 */
+                password = it
+                passwordError = null
+            },
+
+            keyboardOptions =
+                KeyboardOptions(
+                    keyboardType =
+                        KeyboardType.Password,
+                    imeAction =
+                        ImeAction.Next
+                ),
+
+            placeholder = {
+
+                Text(
+                    "••••••",
+                    color =
+                        ColorSubtexto
+                )
+            },
+
+            visualTransformation =
+                if (verPassword)
+                    VisualTransformation.None
+                else
+                    PasswordVisualTransformation(),
+
             trailingIcon = {
-                IconButton(onClick = { verPassword = !verPassword }) {
+
+                IconButton(
+                    onClick = {
+                        verPassword =
+                            !verPassword
+                    }
+                ) {
+
                     Icon(
-                        imageVector = if (verPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                        contentDescription = null, tint = ColorVerde
+                        imageVector =
+                            if (verPassword)
+                                Icons.Filled.VisibilityOff
+                            else
+                                Icons.Filled.Visibility,
+                        contentDescription =
+                            null,
+                        tint =
+                            ColorVerde
                     )
                 }
             },
-            isError = passwordError != null,
+
+            isError =
+                passwordError != null,
+
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            colors = campoColors()
+
+            modifier =
+                Modifier.fillMaxWidth(),
+
+            shape =
+                RoundedCornerShape(14.dp),
+
+            colors =
+                campoColors()
         )
-        ErrorTexto(passwordError)
 
-        Spacer(Modifier.height(14.dp))
+        ErrorTexto(
+            passwordError
+        )
 
-        CampoLabel("CONFIRMAR CONTRASEÑA")
+        Spacer(
+            Modifier.height(14.dp)
+        )
+
+        // ============================================================
+        // CONFIRMAR PASSWORD
+        // ============================================================
+
+        CampoLabel(
+            "CONFIRMAR CONTRASEÑA"
+        )
+
         OutlinedTextField(
             value = confirmar,
-            onValueChange = { confirmar = it; confirmarError = null },
-            placeholder = { Text("••••••", color = ColorSubtexto) },
-            visualTransformation = if (verConfirmar) VisualTransformation.None else PasswordVisualTransformation(),
+
+            onValueChange = {
+
+                confirmar = it
+                confirmarError = null
+            },
+
+            keyboardOptions =
+                KeyboardOptions(
+                    keyboardType =
+                        KeyboardType.Password,
+                    imeAction =
+                        ImeAction.Done
+                ),
+
+            placeholder = {
+
+                Text(
+                    "••••••",
+                    color =
+                        ColorSubtexto
+                )
+            },
+
+            visualTransformation =
+                if (verConfirmar)
+                    VisualTransformation.None
+                else
+                    PasswordVisualTransformation(),
+
             trailingIcon = {
-                IconButton(onClick = { verConfirmar = !verConfirmar }) {
+
+                IconButton(
+                    onClick = {
+
+                        verConfirmar =
+                            !verConfirmar
+                    }
+                ) {
+
                     Icon(
-                        imageVector = if (verConfirmar) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                        contentDescription = null, tint = ColorVerde
+                        imageVector =
+                            if (verConfirmar)
+                                Icons.Filled.VisibilityOff
+                            else
+                                Icons.Filled.Visibility,
+                        contentDescription =
+                            null,
+                        tint =
+                            ColorVerde
                     )
                 }
             },
-            isError = confirmarError != null,
+
+            isError =
+                confirmarError != null,
+
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            colors = campoColors()
+
+            modifier =
+                Modifier.fillMaxWidth(),
+
+            shape =
+                RoundedCornerShape(14.dp),
+
+            colors =
+                campoColors()
         )
-        ErrorTexto(confirmarError)
-        registroError?.let {
-            Spacer(Modifier.height(4.dp))
-            Text(it, color = ColorError, fontSize = 12.sp)
+
+        ErrorTexto(
+            confirmarError
+        )
+
+        registroError?.let { error ->
+
+            Spacer(
+                Modifier.height(4.dp)
+            )
+
+            Text(
+                text = error,
+                color =
+                    ColorError,
+                fontSize =
+                    12.sp
+            )
         }
 
-        Spacer(Modifier.height(36.dp))
+        Spacer(
+            Modifier.height(36.dp)
+        )
+
+        // ============================================================
+        // CREAR CUENTA
+        // ============================================================
 
         OutlinedButton(
             onClick = {
-                if (!validar()) return@OutlinedButton
 
-                // Registrar en el ViewModel compartido
-                authViewModel.registrar(nombre.trim(), email.trim(), password.trim()) { result ->
+                if (!validar()) {
+                    return@OutlinedButton
+                }
+
+                authViewModel.registrar(
+
+                    nombre =
+                        nombre.trim(),
+
+                    email =
+                        email.trim(),
+
+                    /*
+                     * MUY IMPORTANTE:
+                     *
+                     * NO password.trim()
+                     */
+                    password =
+                        password
+
+                ) { result ->
+
                     when (result) {
-                        is AuthResult.Success -> onRegistroExitoso(
-                            nombre.trim(),
-                            email.trim(),
-                            authViewModel.usuarioActual?.uid
-                        )
-                        is AuthResult.Error -> registroError = result.mensaje
+
+                        is AuthResult.Success -> {
+
+                            onRegistroExitoso(
+                                nombre.trim(),
+                                email.trim(),
+                                authViewModel
+                                    .usuarioActual
+                                    ?.uid
+                            )
+                        }
+
+                        is AuthResult.Error -> {
+
+                            registroError =
+                                result.mensaje
+                        }
                     }
                 }
             },
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorTexto),
-            border = ButtonDefaults.outlinedButtonBorder.copy(width = 2.dp, brush = SolidColor(ColorVerde))
+
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+
+            shape =
+                RoundedCornerShape(14.dp),
+
+            colors =
+                ButtonDefaults
+                    .outlinedButtonColors(
+                        contentColor =
+                            ColorTexto
+                    ),
+
+            border =
+                ButtonDefaults
+                    .outlinedButtonBorder
+                    .copy(
+                        width =
+                            2.dp,
+                        brush =
+                            SolidColor(
+                                ColorVerde
+                            )
+                    )
         ) {
-            Text("Crear cuenta", fontWeight = FontWeight.SemiBold)
+
+            Text(
+                text =
+                    "Crear cuenta",
+                fontWeight =
+                    FontWeight.SemiBold
+            )
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(
+            Modifier.height(20.dp)
+        )
 
-        TextButton(onClick = onVolver) {
-            Text("¿Ya tenés cuenta? Iniciá sesión", color = ColorTexto, fontSize = 11.sp)
+        TextButton(
+            onClick =
+                onVolver
+        ) {
+
+            Text(
+                text =
+                    "¿Ya tenés cuenta? Iniciá sesión",
+                color =
+                    ColorTexto,
+                fontSize =
+                    11.sp
+            )
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(
+            Modifier.height(24.dp)
+        )
     }
 }
 
 @Composable
-private fun CampoLabel(texto: String) {
-    Text(texto, color = ColorVerde, fontSize = 12.sp, fontWeight = FontWeight.Bold,
-        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp))
+private fun CampoLabel(
+    texto: String
+) {
+
+    Text(
+        text = texto,
+        color =
+            ColorVerde,
+        fontSize =
+            12.sp,
+        fontWeight =
+            FontWeight.Bold,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    bottom = 4.dp
+                )
+    )
 }
 
 @Composable
-private fun ErrorTexto(error: String?) {
-    error?.let { Text(it, color = ColorError, fontSize = 12.sp, modifier = Modifier.fillMaxWidth()) }
+private fun ErrorTexto(
+    error: String?
+) {
+
+    error?.let {
+
+        Text(
+            text = it,
+            color =
+                ColorError,
+            fontSize =
+                12.sp,
+            modifier =
+                Modifier.fillMaxWidth()
+        )
+    }
 }
 
 @Composable
-private fun campoColors() = OutlinedTextFieldDefaults.colors(
-    focusedContainerColor   = ColorCampo,
-    unfocusedContainerColor = ColorCampo,
-    focusedBorderColor      = Color.Transparent,
-    unfocusedBorderColor    = Color.Transparent,
-    errorBorderColor        = ColorError,
-    focusedTextColor        = ColorTexto,
-    unfocusedTextColor      = ColorTexto,
-    cursorColor             = ColorVerde
-)
+private fun campoColors() =
+    OutlinedTextFieldDefaults.colors(
+
+        focusedContainerColor =
+            ColorCampo,
+
+        unfocusedContainerColor =
+            ColorCampo,
+
+        focusedBorderColor =
+            Color.Transparent,
+
+        unfocusedBorderColor =
+            Color.Transparent,
+
+        errorBorderColor =
+            ColorError,
+
+        focusedTextColor =
+            ColorTexto,
+
+        unfocusedTextColor =
+            ColorTexto,
+
+        cursorColor =
+            ColorVerde
+    )

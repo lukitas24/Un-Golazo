@@ -1,6 +1,5 @@
 package com.example.futbolnomade.presentation.viewModel
 
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -13,6 +12,7 @@ import com.example.futbolnomade.domain.model.Jugador
 import com.example.futbolnomade.domain.repository.JugadorRepository
 import com.example.futbolnomade.domain.repository.NotificationRepository
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -42,49 +42,118 @@ class AuthViewModel(
         private set
 
     init {
-        Log.i("NOTIFICACION_CHECK", "🚀 Iniciando AuthViewModel...")
         actualizarUsuarioDesdeFirebase()
-        
+
         usuarioActual?.let {
-            Log.i("NOTIFICACION_CHECK", "✅ Usuario detectado en inicio: ${it.email}")
             accesoDesbloqueado = true
+
             viewModelScope.launch {
                 registrarDispositivoActual()
             }
-        } ?: Log.i("NOTIFICACION_CHECK", "ℹ️ No hay sesión activa al iniciar.")
+        }
     }
 
-    fun login(email: String, password: String, onResult: (AuthResult) -> Unit) {
+    fun login(
+        email: String,
+        password: String,
+        onResult: (AuthResult) -> Unit
+    ) {
         val cleanEmail = email.trim().lowercase()
+
         viewModelScope.launch {
-            try {
-                Log.i("NOTIFICACION_CHECK", "🔑 Intentando login para $cleanEmail...")
-                auth.signInWithEmailAndPassword(cleanEmail, password).await()
 
-                val firebaseUser = auth.currentUser
-                if (firebaseUser != null) {
-                    val jugadorExistente = jugadorRepository.obtenerJugador(firebaseUser.uid)
-                    if (jugadorExistente == null) {
-                        Log.i("NOTIFICACION_CHECK", "🔧 Recreando perfil en Firestore para $cleanEmail")
-                        val nuevoJugador = Jugador(
-                            id = firebaseUser.uid,
-                            nombre = firebaseUser.displayName ?: firebaseUser.email?.substringBefore("@") ?: "Usuario",
-                            email = cleanEmail
-                        )
-                        jugadorRepository.guardarJugador(nuevoJugador)
-                    }
-                }
+            val firebaseUser = try {
+                val authResult = auth.signInWithEmailAndPassword(
+                    cleanEmail,
+                    password
+                ).await()
 
-                actualizarUsuarioDesdeFirebase()
-                registrarDispositivoActual()
-
-                accesoDesbloqueado = true
-                onResult(AuthResult.Success)
+                authResult.user
             } catch (exception: Exception) {
-                Log.e("NOTIFICACION_CHECK", "❌ Error en login: ${exception.message}")
+
+                val firebaseException =
+                    exception as? FirebaseAuthException
+
                 accesoDesbloqueado = false
-                onResult(AuthResult.Error(exception.message ?: "Email o contraseña incorrectos"))
+
+                val mensaje =
+                    when (firebaseException?.errorCode) {
+
+                        "ERROR_INVALID_CREDENTIAL",
+                        "ERROR_WRONG_PASSWORD",
+                        "ERROR_USER_NOT_FOUND" ->
+                            "Email o contraseña incorrectos."
+
+                        "ERROR_TOO_MANY_REQUESTS" ->
+                            "Demasiados intentos de inicio de sesión. Probá nuevamente más tarde."
+
+                        "ERROR_NETWORK_REQUEST_FAILED" ->
+                            "No se pudo conectar con Firebase. Revisá tu conexión."
+
+                        "ERROR_USER_DISABLED" ->
+                            "Esta cuenta fue deshabilitada."
+
+                        else ->
+                            exception.message
+                                ?: "No se pudo iniciar sesión."
+                    }
+
+                onResult(
+                    AuthResult.Error(mensaje)
+                )
+
+                return@launch
             }
+
+            if (firebaseUser == null) {
+                accesoDesbloqueado = false
+
+                onResult(
+                    AuthResult.Error(
+                        "Firebase no devolvió el usuario."
+                    )
+                )
+
+                return@launch
+            }
+
+            try {
+                val jugadorExistente =
+                    jugadorRepository.obtenerJugador(
+                        firebaseUser.uid
+                    )
+
+                if (jugadorExistente == null) {
+
+                    val nuevoJugador =
+                        Jugador(
+                            id = firebaseUser.uid,
+                            nombre =
+                                firebaseUser.displayName
+                                    ?: firebaseUser.email
+                                        ?.substringBefore("@")
+                                    ?: "Usuario",
+                            email =
+                                firebaseUser.email
+                                    ?: cleanEmail
+                        )
+
+                    jugadorRepository.guardarJugador(
+                        nuevoJugador
+                    )
+                }
+            } catch (_: Exception) {
+            }
+
+            actualizarUsuarioDesdeFirebase()
+
+            registrarDispositivoActual()
+
+            accesoDesbloqueado = true
+
+            onResult(
+                AuthResult.Success
+            )
         }
     }
 
@@ -99,124 +168,274 @@ class AuthViewModel(
 
         viewModelScope.launch {
             try {
-                val authResult = auth.createUserWithEmailAndPassword(cleanEmail, password).await()
-                val firebaseUser = authResult.user ?: throw IllegalStateException("Error al registrar")
+                val authResult =
+                    auth.createUserWithEmailAndPassword(
+                        cleanEmail,
+                        password
+                    ).await()
 
-                val profileUpdates = UserProfileChangeRequest.Builder()
-                    .setDisplayName(cleanName)
-                    .build()
+                val firebaseUser =
+                    authResult.user
+                        ?: throw IllegalStateException(
+                            "Firebase creó la cuenta pero no devolvió el usuario."
+                        )
 
-                firebaseUser.updateProfile(profileUpdates).await()
+                try {
+                    val profileUpdates =
+                        UserProfileChangeRequest
+                            .Builder()
+                            .setDisplayName(cleanName)
+                            .build()
 
-                val nuevoJugador = Jugador(
-                    id = firebaseUser.uid,
-                    nombre = cleanName,
-                    email = cleanEmail
-                )
+                    firebaseUser
+                        .updateProfile(profileUpdates)
+                        .await()
+                } catch (_: Exception) {
+                }
 
-                jugadorRepository.guardarJugador(nuevoJugador)
+                try {
+                    val nuevoJugador =
+                        Jugador(
+                            id = firebaseUser.uid,
+                            nombre = cleanName,
+                            email = cleanEmail
+                        )
 
-                usuarioActual = Usuario(
-                    nombre = cleanName,
-                    email = cleanEmail,
-                    uid = firebaseUser.uid
-                )
+                    jugadorRepository.guardarJugador(
+                        nuevoJugador
+                    )
+                } catch (_: Exception) {
+                }
+
+                actualizarUsuarioDesdeFirebase()
+
+                usuarioActual =
+                    Usuario(
+                        nombre = cleanName,
+                        email =
+                            firebaseUser.email
+                                ?: cleanEmail,
+                        uid = firebaseUser.uid
+                    )
 
                 registrarDispositivoActual()
+
                 accesoDesbloqueado = true
-                onResult(AuthResult.Success)
+
+                onResult(
+                    AuthResult.Success
+                )
+
             } catch (exception: Exception) {
+
+                val firebaseException =
+                    exception as? FirebaseAuthException
+
                 accesoDesbloqueado = false
-                onResult(AuthResult.Error(exception.message ?: "No se pudo registrar el usuario"))
+
+                val mensaje =
+                    when (firebaseException?.errorCode) {
+
+                        "ERROR_EMAIL_ALREADY_IN_USE" ->
+                            "Ya existe una cuenta con ese email."
+
+                        "ERROR_WEAK_PASSWORD" ->
+                            "La contraseña es demasiado débil."
+
+                        "ERROR_INVALID_EMAIL" ->
+                            "El email no es válido."
+
+                        "ERROR_NETWORK_REQUEST_FAILED" ->
+                            "No se pudo conectar con Firebase."
+
+                        "ERROR_TOO_MANY_REQUESTS" ->
+                            "Demasiados intentos. Probá nuevamente más tarde."
+
+                        else ->
+                            exception.message
+                                ?: "No se pudo registrar el usuario."
+                    }
+
+                onResult(
+                    AuthResult.Error(mensaje)
+                )
             }
         }
     }
 
     private suspend fun registrarDispositivoActual() {
-        val uid = auth.currentUser?.uid ?: return
+        val uid =
+            auth.currentUser?.uid
+                ?: return
+
         try {
-            Log.i("NOTIFICACION_CHECK", "📡 Registrando dispositivo para UID: $uid")
-            notificationRepository.registrarDispositivo(uid)
-            Log.i("NOTIFICACION_CHECK", "✅ Dispositivo registrado con éxito.")
-        } catch (exception: Exception) {
-            Log.e("NOTIFICACION_CHECK", "❌ No se pudo registrar el dispositivo.", exception)
+            notificationRepository.registrarDispositivo(
+                uid
+            )
+        } catch (_: Exception) {
         }
     }
 
     private fun actualizarUsuarioDesdeFirebase() {
-        usuarioActual = auth.currentUser?.let { firebaseUser ->
-            Usuario(
-                nombre = firebaseUser.displayName.orEmpty(),
-                email = firebaseUser.email.orEmpty(),
-                uid = firebaseUser.uid
-            )
-        }
+        usuarioActual =
+            auth.currentUser?.let { firebaseUser ->
+                Usuario(
+                    nombre =
+                        firebaseUser.displayName.orEmpty(),
+                    email =
+                        firebaseUser.email.orEmpty(),
+                    uid =
+                        firebaseUser.uid
+                )
+            }
     }
 
-    fun logout(onComplete: () -> Unit = {}) {
-        val uid = auth.currentUser?.uid
+    fun logout(
+        onComplete: () -> Unit = {}
+    ) {
+        val uid =
+            auth.currentUser?.uid
+
         viewModelScope.launch {
             try {
                 if (!uid.isNullOrBlank()) {
-                    notificationRepository.eliminarDispositivo(uid)
+                    notificationRepository
+                        .eliminarDispositivo(uid)
                 }
-            } catch (exception: Exception) {
-                Log.w("NOTIFICACION_CHECK", "Aviso: No se pudo eliminar el token al salir.")
+            } catch (_: Exception) {
             }
+
             auth.signOut()
+
             usuarioActual = null
             accesoDesbloqueado = false
+
             onComplete()
         }
     }
 
-    fun actualizarUsuarioActual(nombre: String, email: String, password: String) {
-        val firebaseUser = auth.currentUser ?: return
+    fun actualizarUsuarioActual(
+        nombre: String,
+        email: String,
+        password: String
+    ) {
+        val firebaseUser =
+            auth.currentUser
+                ?: return
+
         viewModelScope.launch {
             try {
-                val cleanName = nombre.trim()
-                val cleanEmail = email.trim().lowercase()
+                val cleanName =
+                    nombre.trim()
+
+                val cleanEmail =
+                    email.trim().lowercase()
 
                 if (cleanName.isNotBlank()) {
-                    val profileUpdates = UserProfileChangeRequest.Builder().setDisplayName(cleanName).build()
-                    firebaseUser.updateProfile(profileUpdates).await()
+                    val profileUpdates =
+                        UserProfileChangeRequest
+                            .Builder()
+                            .setDisplayName(cleanName)
+                            .build()
+
+                    firebaseUser
+                        .updateProfile(profileUpdates)
+                        .await()
                 }
 
-                if (cleanEmail.isNotBlank() && !cleanEmail.equals(firebaseUser.email, ignoreCase = true)) {
-                    firebaseUser.updateEmail(cleanEmail).await()
+                if (
+                    cleanEmail.isNotBlank() &&
+                    !cleanEmail.equals(
+                        firebaseUser.email,
+                        ignoreCase = true
+                    )
+                ) {
+                    firebaseUser
+                        .updateEmail(cleanEmail)
+                        .await()
                 }
 
                 if (password.isNotBlank()) {
-                    firebaseUser.updatePassword(password).await()
+                    firebaseUser
+                        .updatePassword(password)
+                        .await()
                 }
 
-                val jugadorActualizado = Jugador(
-                    id = firebaseUser.uid,
-                    nombre = cleanName.ifBlank { firebaseUser.displayName.orEmpty() },
-                    email = cleanEmail.ifBlank { firebaseUser.email.orEmpty() }
+                val jugadorActualizado =
+                    Jugador(
+                        id = firebaseUser.uid,
+                        nombre =
+                            cleanName.ifBlank {
+                                firebaseUser
+                                    .displayName
+                                    .orEmpty()
+                            },
+                        email =
+                            cleanEmail.ifBlank {
+                                firebaseUser
+                                    .email
+                                    .orEmpty()
+                            }
+                    )
+
+                jugadorRepository.guardarJugador(
+                    jugadorActualizado
                 )
-                jugadorRepository.guardarJugador(jugadorActualizado)
+
                 actualizarUsuarioDesdeFirebase()
-            } catch (exception: Exception) {
-                Log.e("NOTIFICACION_CHECK", "Error actualizando perfil", exception)
+
+            } catch (_: Exception) {
             }
         }
     }
 
-    fun loginWithBiometricCredentials(credentials: BiometricCredentials, onResult: (AuthResult) -> Unit) {
+    fun loginWithBiometricCredentials(
+        credentials: BiometricCredentials,
+        onResult: (AuthResult) -> Unit
+    ) {
         viewModelScope.launch {
             try {
                 auth.signOut()
-                auth.signInWithEmailAndPassword(credentials.email, credentials.password).await()
-                val firebaseUser = auth.currentUser ?: throw IllegalStateException("Error biometric logic")
-                if (firebaseUser.uid != credentials.uid) throw IllegalStateException("UID mismatch")
+
+                auth.signInWithEmailAndPassword(
+                    credentials.email
+                        .trim()
+                        .lowercase(),
+                    credentials.password
+                ).await()
+
+                val firebaseUser =
+                    auth.currentUser
+                        ?: throw IllegalStateException(
+                            "Firebase no devolvió usuario en login biométrico."
+                        )
+
+                if (firebaseUser.uid != credentials.uid) {
+                    throw IllegalStateException(
+                        "UID biométrico no coincide."
+                    )
+                }
+
                 actualizarUsuarioDesdeFirebase()
+
                 registrarDispositivoActual()
+
                 accesoDesbloqueado = true
-                onResult(AuthResult.Success)
+
+                onResult(
+                    AuthResult.Success
+                )
+
             } catch (exception: Exception) {
-                Log.e("NOTIFICACION_CHECK", "Error biometric login", exception)
-                onResult(AuthResult.Error(exception.message ?: "Error"))
+
+                accesoDesbloqueado = false
+
+                onResult(
+                    AuthResult.Error(
+                        exception.message
+                            ?: "No se pudo ingresar con biometría."
+                    )
+                )
             }
         }
     }
