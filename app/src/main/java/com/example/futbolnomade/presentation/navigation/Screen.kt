@@ -51,6 +51,17 @@ sealed class Screen(val route: String) {
 
     object CercaDeMi : Screen("cerca_de_mi")
 
+    object EditarPartido :
+        Screen(
+            "editar_partido/{partidoId}"
+        ) {
+
+        fun createRoute(
+            partidoId: String
+        ): String {
+            return "editar_partido/$partidoId"
+        }
+    }
 }
 
 private fun String.encodeForRoute() =

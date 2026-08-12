@@ -64,7 +64,7 @@ import com.example.futbolnomade.presentation.notification.NotificationTarget
 import com.example.futbolnomade.presentation.notification.PartidoReminderScheduler
 import com.example.futbolnomade.presentation.notification.ValoracionReminderScheduler
 import com.example.futbolnomade.presentation.notification.ValoracionReminderWorker
-
+import com.example.futbolnomade.presentation.ui.partidos.EditarPartidoScreen
 
 private data class PendingBiometricEnrollment(
     val nombre: String,
@@ -876,6 +876,10 @@ fun AppNavigation(
                 DetallePartidoScreen(
                     partido = partido,
                     usuarioActual = perfilViewModel.email,
+                    usuarioActualUid =
+                        authViewModel.usuarioActual
+                            ?.uid
+                            .orEmpty(),
 
                     onAnotarse = { id, usuario ->
                         partidoViewModel.anotarseAPartido(
@@ -916,6 +920,14 @@ fun AppNavigation(
                     onValorarPartido = { id ->
                         navController.navigate(
                             Screen.ValorarPartido.createRoute(id)
+                        )
+                    },
+
+                    onEditarPartido = { id ->
+
+                        navController.navigate(
+                            Screen.EditarPartido
+                                .createRoute(id)
                         )
                     },
 
@@ -1057,6 +1069,102 @@ fun AppNavigation(
                     },
                     onVolver = {
                         navController.popBackStack()
+                    }
+                )
+            }
+
+            composable(
+                route =
+                    Screen.EditarPartido.route,
+
+                arguments =
+                    listOf(
+                        navArgument(
+                            "partidoId"
+                        ) {
+                            type =
+                                NavType.StringType
+                        }
+                    )
+            ) { backStackEntry ->
+
+                val partidoId =
+                    backStackEntry
+                        .arguments
+                        ?.getString(
+                            "partidoId"
+                        )
+                        ?: return@composable
+
+                LaunchedEffect(
+                    partidoId
+                ) {
+                    partidoViewModel
+                        .cargarPartidos()
+                }
+
+                val partido =
+                    partidoViewModel
+                        .uiState
+                        .partidos
+                        .find {
+                            it.id ==
+                                    partidoId
+                        }
+
+                EditarPartidoScreen(
+                    partido = partido,
+
+                    usuarioActualUid =
+                        authViewModel
+                            .usuarioActual
+                            ?.uid
+                            .orEmpty(),
+
+                    usuarioActualEmail =
+                        perfilViewModel.email,
+
+                    onGuardar = {
+                            partidoActualizado ->
+
+                        partidoViewModel
+                            .actualizarPartidoComoCreador(
+                                partidoActualizado =
+                                    partidoActualizado,
+
+                                usuarioUid =
+                                    authViewModel
+                                        .usuarioActual
+                                        ?.uid
+                                        .orEmpty(),
+
+                                usuarioEmail =
+                                    perfilViewModel
+                                        .email
+                            ) { exito, mensaje ->
+
+                                if (exito) {
+
+                                    showShortMessage(
+                                        "Partido actualizado"
+                                    )
+
+                                    navController
+                                        .popBackStack()
+
+                                } else {
+
+                                    showShortMessage(
+                                        mensaje
+                                            ?: "No se pudo actualizar el partido"
+                                    )
+                                }
+                            }
+                    },
+
+                    onVolver = {
+                        navController
+                            .popBackStack()
                     }
                 )
             }

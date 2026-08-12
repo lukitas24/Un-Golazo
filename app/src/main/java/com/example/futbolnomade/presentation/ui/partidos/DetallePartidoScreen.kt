@@ -47,9 +47,14 @@ private val AmarilloPendiente = Color(0xFFFFC107)
 fun DetallePartidoScreen(
     partido: Partido?,
     usuarioActual: String,
+    usuarioActualUid: String,
+
     onAnotarse: (String, String) -> Unit,
     onCancelarInscripcion: (String, String) -> Unit,
     onEliminarJugador: (String, String) -> Unit,
+
+    onEditarPartido: (String) -> Unit,
+
     onEliminarPartido: (String) -> Unit,
     puedeValorar: Boolean,
     yaValoro: Boolean,
@@ -61,8 +66,25 @@ fun DetallePartidoScreen(
         return
     }
 
-    val usuarioNormalizado = usuarioActual.trim()
-    val esCreador = partido.creador.trim().equals(usuarioNormalizado, ignoreCase = true)
+    val usuarioNormalizado =
+        usuarioActual.trim()
+
+    val esCreador =
+        if (partido.creadorUid.isNotBlank()) {
+
+            usuarioActualUid.isNotBlank() &&
+                    partido.creadorUid ==
+                    usuarioActualUid
+
+        } else {
+
+            partido.creador
+                .trim()
+                .equals(
+                    usuarioNormalizado,
+                    ignoreCase = true
+                )
+        }
     val yaEstaAnotado = partido.usuariosAnotados.any { it.trim().equals(usuarioNormalizado, ignoreCase = true) }
     val partidoLleno = partido.participantesActuales >= partido.participantesMaximos
     val permiteInscripciones = partido.estado == EstadoPartido.PUBLICADO || partido.estado == EstadoPartido.RESERVA_APROBADA
@@ -146,6 +168,11 @@ fun DetallePartidoScreen(
                 onCancelarInscripcion = { onCancelarInscripcion(partido.id, usuarioActual) },
                 onValorar = { onValorarPartido(partido.id) },
                 onCompartir = { compartirPartido(context, partido) },
+                onEditar = {
+                    onEditarPartido(
+                        partido.id
+                    )
+                },
                 onSolicitarEliminarPartido = { confirmarEliminarPartido = true }
             )
 
@@ -408,6 +435,7 @@ private fun AccionesPartido(
     onCancelarInscripcion: () -> Unit,
     onValorar: () -> Unit,
     onCompartir: () -> Unit,
+    onEditar: () -> Unit,
     onSolicitarEliminarPartido: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -449,10 +477,63 @@ private fun AccionesPartido(
         }
 
         if (esCreador) {
-            OutlinedButton(onClick = onSolicitarEliminarPartido, modifier = Modifier.fillMaxWidth().height(50.dp), border = BorderStroke(1.dp, RojoEliminar)) {
-                Icon(Icons.Default.Delete, null, tint = RojoEliminar)
-                Spacer(Modifier.width(8.dp))
-                Text("Eliminar partido", color = RojoEliminar)
+
+            Button(
+                onClick = onEditar,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = VerdePrincipal,
+                    contentColor = Color.Black
+                )
+            ) {
+
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = null
+                )
+
+                Spacer(
+                    Modifier.width(8.dp)
+                )
+
+                Text(
+                    text = "Editar partido",
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            OutlinedButton(
+                onClick =
+                    onSolicitarEliminarPartido,
+
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+
+                border =
+                    BorderStroke(
+                        1.dp,
+                        RojoEliminar
+                    )
+            ) {
+
+                Icon(
+                    Icons.Default.Delete,
+                    null,
+                    tint = RojoEliminar
+                )
+
+                Spacer(
+                    Modifier.width(8.dp)
+                )
+
+                Text(
+                    "Eliminar partido",
+                    color = RojoEliminar
+                )
             }
         }
     }

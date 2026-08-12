@@ -284,6 +284,223 @@ class PartidoViewModel(
         }
     }
 
+    fun actualizarPartidoComoCreador(
+        partidoActualizado: Partido,
+        usuarioUid: String,
+        usuarioEmail: String,
+        onResultado: (Boolean, String?) -> Unit
+    ) {
+        viewModelScope.launch {
+
+            try {
+
+                val partidoOriginal =
+                    repository.obtenerPartido(
+                        partidoActualizado.id
+                    )
+
+                if (partidoOriginal == null) {
+                    onResultado(
+                        false,
+                        "No se encontró el partido"
+                    )
+                    return@launch
+                }
+
+                /*
+                 * Si existe UID, es la identidad principal.
+                 *
+                 * Solo usamos email como fallback en partidos
+                 * viejos que todavía no tengan creadorUid.
+                 */
+                val esCreador =
+                    if (
+                        partidoOriginal
+                            .creadorUid
+                            .isNotBlank()
+                    ) {
+
+                        usuarioUid.isNotBlank() &&
+                                partidoOriginal
+                                    .creadorUid ==
+                                usuarioUid
+
+                    } else {
+
+                        partidoOriginal
+                            .creador
+                            .trim()
+                            .equals(
+                                usuarioEmail.trim(),
+                                ignoreCase = true
+                            )
+                    }
+
+                if (!esCreador) {
+
+                    onResultado(
+                        false,
+                        "No tenés permiso para editar este partido"
+                    )
+
+                    return@launch
+                }
+
+                if (
+                    partidoActualizado
+                        .participantesMaximos <
+                    partidoOriginal
+                        .participantesActuales
+                ) {
+
+                    onResultado(
+                        false,
+                        "No podés poner menos cupos que jugadores anotados"
+                    )
+
+                    return@launch
+                }
+
+                val tieneReserva =
+                    !partidoOriginal
+                        .canchaId
+                        .isNullOrBlank()
+
+                /*
+                 * Un partido con cancha ya tiene una Reserva.
+                 *
+                 * Hasta que implementemos edición de Reserva,
+                 * mantenemos cancha/fecha/horario originales.
+                 */
+                val fechaFinal =
+                    if (tieneReserva) {
+                        partidoOriginal.fecha
+                    } else {
+                        partidoActualizado.fecha
+                    }
+
+                val horarioFinal =
+                    if (tieneReserva) {
+                        partidoOriginal.horario
+                    } else {
+                        partidoActualizado.horario
+                    }
+
+                val ubicacionFinal =
+                    if (tieneReserva) {
+                        partidoOriginal.ubicacion
+                    } else {
+                        partidoActualizado.ubicacion
+                    }
+
+                val partidoSeguro =
+                    partidoActualizado.copy(
+
+                        id =
+                            partidoOriginal.id,
+
+                        /*
+                         * Estos campos nunca los puede modificar
+                         * la pantalla de edición.
+                         */
+                        creador =
+                            partidoOriginal.creador,
+
+                        creadorUid =
+                            partidoOriginal.creadorUid,
+
+                        usuariosAnotados =
+                            partidoOriginal
+                                .usuariosAnotados,
+
+                        usuariosAnotadosUids =
+                            partidoOriginal
+                                .usuariosAnotadosUids,
+
+                        participantesActuales =
+                            partidoOriginal
+                                .participantesActuales,
+
+                        calificacionCreador =
+                            partidoOriginal
+                                .calificacionCreador,
+
+                        estado =
+                            partidoOriginal.estado,
+
+                        /*
+                         * Relación con cancha.
+                         */
+                        canchaId =
+                            partidoOriginal.canchaId,
+
+                        nombreCancha =
+                            partidoOriginal.nombreCancha,
+
+                        fecha =
+                            fechaFinal,
+
+                        horario =
+                            horarioFinal,
+
+                        ubicacion =
+                            ubicacionFinal,
+
+                        fechaHoraInicio =
+                            calcularFechaHoraInicioMillis(
+                                fecha =
+                                    fechaFinal,
+                                horario =
+                                    horarioFinal
+                            ),
+
+                        latitud =
+                            if (tieneReserva) {
+                                partidoOriginal.latitud
+                            } else {
+                                partidoActualizado.latitud
+                            },
+
+                        longitud =
+                            if (tieneReserva) {
+                                partidoOriginal.longitud
+                            } else {
+                                partidoActualizado.longitud
+                            }
+                    )
+
+                /*
+                 * PartidoRemoteDataSource actualizará Firestore
+                 * y generará PARTIDO_MODIFICADO si corresponde.
+                 */
+                repository.actualizarPartido(
+                    partidoSeguro
+                )
+
+                cargarPartidos()
+
+                onResultado(
+                    true,
+                    null
+                )
+
+            } catch (e: Exception) {
+
+                Log.e(
+                    "EDITAR_PARTIDO",
+                    "Error al editar partido",
+                    e
+                )
+
+                onResultado(
+                    false,
+                    e.message
+                        ?: "No se pudo guardar el partido"
+                )
+            }
+        }
+    }
+
     fun eliminarPartido(context: Context, id: String) {
         viewModelScope.launch {
             val partido = uiState.partidos.find { it.id == id }
