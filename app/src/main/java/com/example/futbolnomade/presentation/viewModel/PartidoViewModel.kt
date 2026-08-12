@@ -18,7 +18,7 @@ import com.example.futbolnomade.domain.repository.PartidoRepository
 import com.example.futbolnomade.domain.repository.ReservaRepository
 import com.example.futbolnomade.presentation.state.PartidoUiState
 import kotlinx.coroutines.launch
-
+import com.example.futbolnomade.domain.usecase.ObtenerPartidosUseCase
 class PartidoViewModel(
     private val repository: PartidoRepository = PartidoRepositoryImpl(),
     private val reservaRepository: ReservaRepository = ReservaRepositoryImpl()
@@ -29,6 +29,9 @@ class PartidoViewModel(
     var uiState by mutableStateOf(PartidoUiState())
         private set
 
+    private val obtenerPartidosUseCase =
+        ObtenerPartidosUseCase(repository)
+
     init {
         cargarPartidos()
     }
@@ -36,7 +39,7 @@ class PartidoViewModel(
     fun cargarPartidos() {
         viewModelScope.launch {
             try {
-                val partidos = repository.obtenerPartidos()
+                val partidos = obtenerPartidosUseCase()
                 uiState = uiState.copy(partidos = partidos)
             } catch (e: Exception) {
                 Log.e("NOTIFICACION_CHECK", "Error cargando partidos", e)
