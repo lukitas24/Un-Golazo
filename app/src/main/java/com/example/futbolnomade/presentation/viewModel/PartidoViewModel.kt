@@ -162,6 +162,19 @@ class PartidoViewModel(
                         mensaje = "$usuario se anotó a \"${partido.titulo}\".",
                         data = mapOf("tipo" to "NUEVO_JUGADOR", "partidoId" to partidoId)
                     )
+
+                    // Notificación de cupo lleno
+                    if (partido.participantesActuales + 1 >= partido.participantesMaximos) {
+                        Log.i("NOTIFICACION_CHECK", "🔥 Partido completo. Notificando al creador...")
+                        notificationSender.enviarNotificacionAUsuario(
+                            context = context,
+                            uid = destinatarioUid,
+                            fallbackEmail = destinatarioEmail,
+                            titulo = "¡Partido Completo! ⚽🔥",
+                            mensaje = "Tu partido \"${partido.titulo}\" ya tiene el cupo lleno.",
+                            data = mapOf("tipo" to "PARTIDO_LLENO", "partidoId" to partidoId)
+                        )
+                    }
                 }
             }
             cargarPartidos()
@@ -179,12 +192,21 @@ class PartidoViewModel(
 
                 if (destinatarioUid != usuarioUid) {
                     Log.i("NOTIFICACION_CHECK", "🏃 Un jugador se bajó. Notificando al creador ($destinatarioEmail)...")
+                    
+                    val estabaLleno = partido.participantesActuales >= partido.participantesMaximos
+                    val titulo = if (estabaLleno) "¡Se liberó un lugar! 🏃" else "Un jugador se bajó del partido 🏃"
+                    val mensaje = if (estabaLleno) {
+                        "$usuario se bajó de \"${partido.titulo}\". ¡Hay un cupo disponible!"
+                    } else {
+                        "$usuario ya no participará de \"${partido.titulo}\"."
+                    }
+
                     notificationSender.enviarNotificacionAUsuario(
                         context = context,
                         uid = destinatarioUid,
                         fallbackEmail = destinatarioEmail,
-                        titulo = "Un jugador se bajó del partido 🏃",
-                        mensaje = "$usuario ya no participará de \"${partido.titulo}\".",
+                        titulo = titulo,
+                        mensaje = mensaje,
                         data = mapOf("tipo" to "JUGADOR_ABANDONO", "partidoId" to partidoId)
                     )
                 }
